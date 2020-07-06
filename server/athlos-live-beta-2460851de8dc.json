@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "athlos-live-beta",
+  "private_key_id": "2460851de8dc154f738c21bb36bf7f8e5baa3ca4",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCRhmgTrf74IBKn\n6B/7F8imdcmiCpxyhmzWIwN7VgL9ScqoC7i+c2FSrNI+VZHtU9e6Yv0/TwT6GF8A\ny4vksTlF4NRjNwPdgzS9wjdjCA4TodgFnkMFqUpvP5KT5JNWM45wKBAYOHO/LQ6H\nol7bHCu/fpC+Reto9RU+Cn8Na0a6770IUo94qFJtiwbC1weyvVA+gdFsp51uSMHe\nP16SNwVUEWSS74dUN45YrmLNkWWpSiPJjMqgL6gEC8visV08ethzTFevMx6QwvbI\nTvv/eSPmznwQnW1elOw0GZMkR4nUtpMM1d6Y+W+KVq9wsRMhxpPBq3FyFueQR2uq\n4mNH3V+NAgMBAAECggEABRUVcnErtp0MJGq8ydyr8yBUUUFJ8yKoZMF79XqXXSLk\nHdgBn5PRAihV/runU+C55+EIKNteIvaR7tRXsj4m8BP+PD7SIZIxAoWTa0p/Ogai\nJZlq4Xo8RsQIyaXR0tC3I0n1kfBQHoz4ym+McjOQKukag1gBdOdw/VCJh72c4+9p\nBVTrAundAJ5a+hn6kr+QUBPcmzmL4+Xn/BPfOUUYKaCAEqN0G3usa5+KwudMvTK0\nCB44vjPiIehSHeQ3uo+ZFA8gas0AqiA4HXPa2nze9lLg1jy3R+W2/jNyrnWFtKYW\nXi7y2EPymgdhwqZXH5PkVOm9PpCZyHu7+9djvmx90wKBgQDGB8y0Mcxj6k+bH67+\nc1vhqb0WApPDcBLak5ASD3wPBFiBejskh4NGib8+mfgZwmf0HxJM8MGFFklnTSrp\nKp/FING9+pGY1Az1wUY6TXeXRXkwpIMa7Osr2tAyyIlQaWa1WdzjmRhqB7yUAzOa\nNYshB8iBBwdZWnjRA5mrDImFFwKBgQC8H+ck32CEe7xQWfUNLJMttmV5Na241iLT\n9mx+Bkh+cTPI9vFCY73HmRo79OIExGdaIcqSEY/qBZaLyA+7i90EaQfPdNS71pkV\nSjh2a8cwcjna++7BZw6E/GKl/mb7ynFTPTL9I1IO46sv/EVLX27tPUyZQU2XhXpL\nI+Cnn+hu+wKBgBQeQruju4IDEedOhrau/Yylc+JCjMR0JFY0W5SaIh5ccKlmw49o\nfPuzjsxLVBs51tnENlW+t8pPg1GNU2iwvd6HAQft5tDB6jclVX8i0514n2FDtVYM\n769a4X/nQ5v5uUd/Q6OTsBlFg/D9ikaGXgYTBlmlXyfCuzdwyDHKakYtAoGAbEdM\nijuL2RVDEViFpDyIxeHazAYqZF3UE/4c+fhx110eukfwGw8/l1e28tWDFc1Z01Xp\nu2MiW0c2HGRdMcxRvQ0a8rxDCY598/QRRY/JSUglprYk+OpxP/foa7Re4APocEmk\nRHEE9Q7zZB4mYDigpyoGIZulplWsSv1ue+ydIusCgYBd5J2mg1ZSSXSiYF7eUYda\n8UGMFIG4RgMgeVjbTw0h7M+DHybImTaE7QIQlzU7RZcNkrV0MEff+Qss/xWeEUqx\nd1UWUT5eZbGCEuO7vESnlU8105M84287fV1dlrdtOnVQ40wiRiTmpMhnL395gW6X\naCpe/zck8C3RVOKqcT1sTQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "athlos-emails@athlos-live-beta.iam.gserviceaccount.com",
+  "client_id": "110307984738316818966",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/athlos-emails%40athlos-live-beta.iam.gserviceaccount.com"
+}
