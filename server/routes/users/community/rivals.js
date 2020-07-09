@@ -1,6 +1,8 @@
-import constants from '../../../constants'
-const { secret } = constants
-const async = require("async")
+const constants = require('../../../constants')
+const { sendError, SECRET } = constants
+const mongoConfig = require("../../../database/MongoConfig")
+const { User } = mongoConfig
+const mongoose = require('mongoose')
 const jwt = require("jsonwebtoken")
 
 // sends a request to rival someone

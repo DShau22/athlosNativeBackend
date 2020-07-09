@@ -2,7 +2,6 @@ const constants = require('../../../constants')
 const { sendError, SECRET } = constants
 const mongoConfig = require("../../../database/MongoConfig")
 const { User } = mongoConfig
-const async = require("async")
 const mongoose = require('mongoose')
 const jwt = require("jsonwebtoken")
 
@@ -87,18 +86,68 @@ const acceptFollowerRequest = async (req, res) => {
 }
 
 // accept follow request
-const rejectFollowerRequest = (req, res) => {
-  res.send({
-    success: true
-  })
+const rejectFollowerRequest = async (req, res) => {
+  // 1. verify user token
+  // 2. remove from receiver's followerRequests
+  // 3. remove from requester's followingPending
+  // 4. send success response
+  var {
+    userToken,
+    requesterID,
+    requesterFirstName,
+    requesterLastName,
+  } = req.body
+
+  // 1.
+  console.log(userToken, SECRET)
+  try {
+    const receiver = await jwt.verify(userToken, SECRET)
+    var receiverID = receiver._id
+  } catch(e) {
+    return sendError(res, e)
+  }
+
+  // start session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const requester = await User.findOne({ _id: requesterID }).session(session);
+    // remove from requester's followingPending list
+    requester.followingPending = requester.followingPending.filter(user => {
+      return user._id !== receiverID
+    });
+    await requester.save();
+
+    const receiver = await User.findOne({ _id: receiverID }).session(session);
+    // remove from receiver's followerRequests list
+    receiver.followerRequests = receiver.followerRequests.filter(user => {
+      return user._id !== requesterID
+    })
+    await receiver.save();
+
+    // commit the changes if everything was successful
+    await session.commitTransaction();
+    // send success response back to client
+    res.send({
+      success: true,
+      message: `Rejected ${requesterFirstName} ${requesterLastName}'s request.`
+    })
+  } catch(e) {
+    console.error(e);
+    // this will rollback any changes made in the database
+    await session.abortTransaction();
+    return sendError(res, e)
+  } finally {
+    session.endSession();
+  }
 }
 
 // removes a follower from followers list
 const removeFollower = async (req, res) => {
   console.log('removing follower')
   // 1. verify user token
-  // 2. add to receiver's followers, remove from receiver's follwerRequests
-  // 3. add to requester's following, remove from requester's followingPending
+  // 2. remove from receiver's followers
+  // 3. remove from requester's following
   // 4. send success response
 
   // cuz i was lazy and wanted to use the same request object, the receiver here is
@@ -128,12 +177,12 @@ const removeFollower = async (req, res) => {
       return user._id !== removerID
     })
     await removedUser.save();
-
     const remover = await User.findOne({ _id: removerID }).session(session);
     // remove from the remover's followers list
     remover.followers = remover.followers.filter(user => {
       return user._id !== requesterID
     })
+
     await remover.save();
 
     // commit the changes if everything was successful
