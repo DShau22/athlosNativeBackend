@@ -168,7 +168,7 @@ mongoose.connection.once("open", function() {
   //   })
   // })
 
-  server.listen(8080)
+  server.listen(3000)
 })
 module.exports = {
   app,

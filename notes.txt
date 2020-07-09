@@ -1,6 +1,12 @@
 run gcloud init to create new configs (this is what was run to add athlos-live account instead of berkeley account)
 gcloud config list => lists some of the settings of the current configuration
 
+Run "npm start" to test the google cloud functions locally
+
+lsof -n -i4TCP:8080 
+kill -9 <PID>
+  finds process running on port 8080 and kills it
+
 gcloud functions deploy athlos-server --runtime nodejs8 --trigger-http --entry-point app
   *** must be in the server folder
 davidshau22@berkeley.edu endpoint: https://us-central1-athlos-live.cloudfunctions.net/athlos-server

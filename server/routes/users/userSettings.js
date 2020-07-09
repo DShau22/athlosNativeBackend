@@ -1,3 +1,4 @@
+
 const express = require('express')
 const router = express.Router()
 
@@ -24,6 +25,7 @@ router.post("/updateSettings", async (req, res) => {
     swimLap,
     userToken
   } = req.body
+  console.log('updating user settings...')
 
   // make sure all of them are present
   if (!seeFriendsList || !seeFitness || !seeBasicInfo || !unitSystem || !swimLap) {

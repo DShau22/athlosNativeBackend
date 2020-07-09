@@ -25,15 +25,15 @@ router.post('/getSearchUser', async (req, res) => {
   }
 
   try {
+    const { _doc } = await User.findOne({_id: _id}, 'settings firstName lastName friends profilePicture')
     var {
       settings,
       firstName,
       lastName,
       friends,
       profilePicture,
-    } = await User.findOne({_id: _id}, 'settings firstName lastName friends profilePicture')
+    } = _doc
     var isFriend = false
-    console.log(payload)
     for (let i = 0; i < friends.length; i++) {
       console.log('friend: ', friends[i])
       if (friends[i]._id === payload._id) {
@@ -56,9 +56,10 @@ router.post('/getSearchUser', async (req, res) => {
 })
 
 router.post('/getSearchUserBasicInfo', async (req, res) => {
-  var { _id } = req.body
+  const { _id } = req.body
   try {
-    var { bio, weight, height, age, gender } = await User.findOne({_id: _id}, 'bio weight height age gender')
+    const { _doc } = await User.findOne({_id: _id}, 'bio weight height age gender')
+    const { bio, weight, height, age, gender } = _doc
     return res.send({
       success: true,
       bio, weight, height, age, gender
@@ -72,7 +73,8 @@ router.post('/getSearchUserBasicInfo', async (req, res) => {
 router.post('/getSearchUserFitness', async (req, res) => {
   var { _id } = req.body
   try {
-    var { bests, totals} = await User.findOne({_id: _id}, 'bests totals')
+    var { _doc } = await User.findOne({_id: _id}, 'bests totals')
+    var { bests, totals } = _doc
     return res.send({
       success: true,
       bests, totals
@@ -84,9 +86,10 @@ router.post('/getSearchUserFitness', async (req, res) => {
 })
 
 router.post('/getSearchUserFriends', async (req, res) => {
-  var { _id } = req.body
+  const { _id } = req.body
   try {
-    var { friends } = await User.findOne({_id: _id}, 'friends')
+    const { _doc } = await User.findOne({_id: _id}, 'friends')
+    const { friends } = _doc
     return res.send({
       success: true,
       friends

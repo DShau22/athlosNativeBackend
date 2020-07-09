@@ -9,7 +9,12 @@ const { User } = mongoConfig
 // other modules and constants
 const async = require("async")
 const jwt = require("jsonwebtoken")
-const secret = 'secretkey'
+const CONSTANTS = require('../../constants')
+const followers = require('./community/followers')
+const extractToken = require('../extract')
+router.post("/acceptFollowerRequest", followers.acceptFollowerRequest);
+router.post("/rejectFollowerRequest", followers.rejectFollowerRequest);
+router.post("/removeFollower", followers.removeFollower);
 
 router.post("/acceptRequest", (req, res) => {
   // 1. verify user token
@@ -28,7 +33,7 @@ router.post("/acceptRequest", (req, res) => {
 
   // 1.
   var userID;
-  jwt.verify(userToken, secret, (err, decoded) => {
+  jwt.verify(userToken, CONSTANTS.SECRET, (err, decoded) => {
     if (err) {
       throw err
       sendError(res, err)
@@ -127,7 +132,7 @@ router.post("/sendFriendReq", (req, res) => {
 
   // verify user token and save the decoded _id
   var user_id;
-  jwt.verify(token, secret, (err, decoded) => {
+  jwt.verify(token, CONSTANTS.SECRET, (err, decoded) => {
     if (err) {
       sendError(res, err)
     } else {
