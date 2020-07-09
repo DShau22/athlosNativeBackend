@@ -25,19 +25,21 @@ router.post('/getSearchUser', async (req, res) => {
   }
 
   try {
-    const { _doc } = await User.findOne({_id: _id}, 'settings firstName lastName friends profilePicture')
+    const { _doc } = await User.findOne({_id: _id}, 'settings firstName lastName followers profilePicture')
+    // this are all the info about the person who's being searched
     var {
       settings,
       firstName,
       lastName,
-      friends,
+      followers,
       profilePicture,
     } = _doc
-    var isFriend = false
-    for (let i = 0; i < friends.length; i++) {
-      console.log('friend: ', friends[i])
-      if (friends[i]._id === payload._id) {
-        isFriend = true
+    var follows = false
+    console.log(_doc)
+    for (let i = 0; i < followers.length; i++) {
+      console.log('user: ', followers[i])
+      if (followers[i]._id === payload._id) {
+        follows = true
         break
       }
     }
@@ -50,7 +52,7 @@ router.post('/getSearchUser', async (req, res) => {
     settings,
     firstName,
     lastName,
-    isFriend,
+    follows,
     profilePicture
   })
 })

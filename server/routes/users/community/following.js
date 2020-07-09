@@ -70,9 +70,58 @@ const unfollow = async (req, res) => {
 
 // cancels the follow request that the user sent
 const cancelFollowRequest = async (req, res) => {
-  res.send({
-    success: true
-  })
+  console.log('cancelling')
+  console.log(req.body)
+  // 1. verify user token
+  // 2. remove from canceller's followingPending list
+  // 3. remove from the request receiver's follower requests list
+  // 4. send success response
+  var {
+    userToken,
+    requestReceiverId,
+  } = req.body
+
+  // 1.
+  try {
+    const canceller = await jwt.verify(userToken, SECRET)
+    var cancellerId = canceller._id
+  } catch(e) {
+    return sendError(res, e)
+  }
+
+  // start session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const userWhosCancelling = await User.findOne({ _id: cancellerId }).session(session);
+    // 2.
+    userWhosCancelling.followingPending = userWhosCancelling.followingPending.filter(person => {
+      return person._id !== requestReceiverId
+    })
+    await userWhosCancelling.save();
+
+    const requestReceiver = await User.findOne({ _id: requestReceiverId }).session(session);
+    // 3.
+    requestReceiver.followerRequests = requestReceiver.followerRequests.filter(person => {
+      return person._id !== cancellerId
+    })
+    await requestReceiver.save();
+
+    // commit the changes if everything was successful
+    await session.commitTransaction();
+    // 4.
+    res.send({
+      success: true,
+      message: `successfully canceled follow request`
+    })
+  } catch(e) {
+    console.error(e);
+    // this will rollback any changes made in the database
+    await session.abortTransaction();
+    return sendError(res, e)
+  } finally {
+    session.endSession();
+  }
 }
 
 const following = {
