@@ -14,7 +14,8 @@ dotenv.config()
 const mongoConfig = require("../database/MongoConfig")
 const { User } = mongoConfig
 const jwt = require("jsonwebtoken")
-const secret = 'secretkey'
+const constants = require('../constants')
+const { sendError, SECRET } = constants
 const async = require("async")
 const date = new Date()
 
@@ -26,13 +27,11 @@ function hashPass(password) {
   return bcrypt.hashSync(password, bcrypt.genSaltSync(10), null)
 }
 
-function sendResponse(res, success, msg) {
-  console.log("sending response...", success, msg)
+function sendResponse(res, success, message) {
+  console.log("sending response...", success, message)
   return res.send({
-    success: success,
-    messages: {
-      msg: msg,
-    }
+    success,
+    message,
   })
 }
 
@@ -45,7 +44,7 @@ router.get("/confirmation", (req, res) => {
   async.waterfall([
     // veryify the token
     function(callback) {
-      jwt.verify(emailToken, secret, (err, decoded) => {
+      jwt.verify(emailToken, SECRET, (err, decoded) => {
         if (err) {
           callback(err)
         } else {
@@ -112,22 +111,28 @@ router.post("/forgotPassword", (req, res) => {
           var userNotRegisteredError = new Error("This user has registered but has not confirmed. Please check the inbox for a confirmation email.")
           callback(userNotRegisteredError, user)
         } else {
-          callback(null, user)
+          console.log("found the user: ", user)
+          callback(null)
         }
       })
     },
     // sign an email token, which is verified on the pwResetPage
     function(callback) {
-      jwt.sign({email}, secret, {expiresIn: "12h"}, (err, token) => {
+      console.log("signing email token...")
+      jwt.sign({ email }, SECRET, { expiresIn: "12h" }, (err, token) => {
+        console.log("done signing email token")
         if (err) {
+          console.log(err)
           callback(err)
         } else {
+          console.log("callback: ", callback)
           callback(null, token)
         }
       })
     },
     // send the email
     function(token, callback) {
+      console.log("perparing to send email...")
       var transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
@@ -142,7 +147,9 @@ router.post("/forgotPassword", (req, res) => {
       const confRedirect = `http://www.athloslive.com/pwResetPage?token=${token}`
       var mailOptions = {
         from: "The Athlos Team",
-        to: `${email}`,
+        // to: `${email}`,
+        // FOR TESTING PURPOSES
+        to: 'davidshau22@berkeley.edu',
         subject: "Your Athlos Account Password Reset",
         html: `Hello, \n Please click this link to reset your password:
         <a href=${confRedirect}>Reset Password</a>`
