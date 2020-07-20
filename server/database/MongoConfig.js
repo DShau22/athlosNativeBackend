@@ -262,10 +262,10 @@ const UserSchema = new Schema({
     default: {
       unitSystem: "English", // English, metric
       swimLap: "25 yd", // 25 yd, 50 m, 25 m, or some custom text like 33.3 yd
-      seeFriendsList: "everyone", //everyone, friends, just me
-      seeFitness: "everyone", //everyone, friends, just me
-      seeBasicInfo: "everyone", //everyone, friends, just me
-    }
+      seePeople: "everyone", //everyone, followers, only me
+      seeFitness: "everyone", //everyone, followers, only me
+    },
+    seeBasicInfo: "everyone", //everyone, followers, only me
   }
 })
 

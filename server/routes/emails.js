@@ -125,7 +125,6 @@ router.post("/forgotPassword", (req, res) => {
           console.log(err)
           callback(err)
         } else {
-          console.log("callback: ", callback)
           callback(null, token)
         }
       })
@@ -144,7 +143,8 @@ router.post("/forgotPassword", (req, res) => {
           privateKey: process.env.PRIVATE_KEY
         }
       })
-      const confRedirect = `http://www.athloslive.com/pwResetPage?token=${token}`
+      // const confRedirect = `http://www.athloslive.com/pwResetPage?token=${token}`
+      const confRedirect = `http://localhost:3001/pwResetPage?token=${token}`
       var mailOptions = {
         from: "The Athlos Team",
         // to: `${email}`,
@@ -172,29 +172,25 @@ router.post("/forgotPassword", (req, res) => {
   })
 })
 
-router.post("/confPasswordReset", (req, res) => {
+router.post("/confPasswordReset", async (req, res) => {
   var { newPassword, email } = req.body
   console.log("new pass is: ", newPassword)
+  console.log('email is: ', email)
   var newHashedPass = hashPass(newPassword)
   // check if user exists
-  User.findOne({email: email}, (err, user) => {
-    if (err) {
-      sendResponse(res, false, "Something went wrong with the server. Please try again later.")
-    } else if (!user) {
-      // for some reason the database can't find the user
-      console.log("email: ", email)
-      sendResponse(res, false, "This email is not registered. Contact support for help.")
+  try {
+    const user = await User.findOne({email: email})
+    console.log('user: ', user)
+    if (!user) {
+      throw new Error("This email is not registered")
     }
-  })
-  // if user exists, no response is sent, so update the user info
-  User.findOneAndUpdate({email: email}, {password: newHashedPass}, (err, results) => {
-    if (err) {
-      sendResponse(res, false, "Something went wrong with the server. Please try again later.")
-    } else {
-      sendResponse(res, true, "Successfully updated your password!")
-    }
-  })
-  // update the database with new password
+    user.password = newHashedPass
+    await user.save();
+    return sendResponse(res, true, "Successfully updated your password!")
+  } catch(e) {
+    console.log(e)
+    return sendResponse(res, false, e.message)
+  }
 })
 
 module.exports = router

@@ -15,6 +15,24 @@ function sendError(res, err) {
   })
 }
 
+router.post('/getSearchUserPeople', async (req, res) => {
+  console.log('getSearchUserPeople')
+  const { _id } = req.body
+  try {
+    const { _doc } = await User.findOne({_id: _id}, 'followers following rivals')
+    const { followers, following, rivals } = _doc
+    return res.send({
+      success: true,
+      followers,
+      following,
+      rivals
+    })
+  } catch(e) {
+    console.log(e)
+    return sendError(res, e)
+  }
+})
+
 router.post('/getSearchUser', async (req, res) => {
   var { _id, userToken } = req.body
   try {
@@ -44,7 +62,7 @@ router.post('/getSearchUser', async (req, res) => {
       }
     }
   } catch(e) {
-    console.error(e)
+    console.log(e)
     return sendError(res, e)
   }
   return res.send({
@@ -67,7 +85,7 @@ router.post('/getSearchUserBasicInfo', async (req, res) => {
       bio, weight, height, age, gender
     })
   } catch(e) {
-    console.error(e)
+    console.log(e)
     return sendError(res, e)
   }
 })
@@ -82,7 +100,7 @@ router.post('/getSearchUserFitness', async (req, res) => {
       bests, totals
     })
   } catch(e) {
-    console.error(e)
+    console.log(e)
     return sendError(res, e)
   }
 })
@@ -97,7 +115,7 @@ router.post('/getSearchUserFriends', async (req, res) => {
       friends
     })
   } catch(e) {
-    console.error(e)
+    console.log(e)
     return sendError(res, e)
   }
 })
