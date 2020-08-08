@@ -56,7 +56,7 @@ const RunSchema = new Schema({
     required: true,
     default: 0,
   },
-  paces: {
+  cadences: {
     type: Array,
     required: true,
     default: []
@@ -90,7 +90,7 @@ const SwimSchema = new Schema({
   //    finished: Boolean
   // }
   lapTimes: {
-    type: [Number],
+    type: [Object],
     required: true,
     default: [],
   },
@@ -236,9 +236,10 @@ const UserSchema = new Schema({
     type: Object,
     required: true,
     default: {
-      jump: 0,
-      run: 0,
-      swim: {}
+      highestJump: 0,
+      mostSteps: 0,
+      mostLaps: 0,
+      bestEvent: {}
     }
   },
   totals: {

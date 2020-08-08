@@ -20,7 +20,7 @@ function sendError(res, err) {
 
 // gets all the user info that is stored in the document in mongo
 router.get("/getUserInfo", extractToken, (req, res, next) => {
-  const projection = { _id: 0, __v: 0, password: 0, productCode: 0, registered: 0, registerDate: 0 }
+  const projection = { __v: 0, password: 0, productCode: 0, registered: 0, registerDate: 0 }
   //verify token
   var userID;
   jwt.verify(req.token, secret, (err, decoded) => {
@@ -29,7 +29,6 @@ router.get("/getUserInfo", extractToken, (req, res, next) => {
       throw err
     }
     userID = decoded
-    // query for the user's firstname, lastname, friends, and friend requests
     User.findOne(
       {"_id": userID},
       projection,

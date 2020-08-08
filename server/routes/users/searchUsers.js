@@ -43,22 +43,48 @@ router.post('/getSearchUser', async (req, res) => {
   }
 
   try {
-    const { _doc } = await User.findOne({_id: _id}, 'settings firstName lastName followers profilePicture')
+    const { _doc } = await User.findOne(
+      {_id: _id}, 
+      'settings firstName lastName followers following followerRequests followingPending rivals profilePicture'
+    )
     // this are all the info about the person who's being searched
     var {
       settings,
       firstName,
       lastName,
       followers,
+      followerRequests,
+      following,
+      followingPending,
+      rivals,
       profilePicture,
     } = _doc
-    var follows = false
+    // CHECK THE PROFILE CONSTANTS TO MAKE SURE THESE ENUMS MATCH
+    var relationshipStatus = 'unrelated'
     console.log(_doc)
-    for (let i = 0; i < followers.length; i++) {
-      console.log('user: ', followers[i])
+    // can't use for each loop cuz can't break
+    for (i = 0; i < followers.length; i++) {
       if (followers[i]._id === payload._id) {
-        follows = true
-        break
+        relationshipStatus = 'following';
+        break;
+      }
+    }
+    if (relationshipStatus === 'unrelated') for (i = 0; i < following.length; i++) {
+      if (following[i]._id === payload._id) {
+        relationshipStatus = 'follower';
+        break;
+      }
+    }
+    if (relationshipStatus === 'unrelated') for (i = 0; i < rivals.length; i++) {
+      if (followerRequests[i]._id === payload._id) {
+        relationshipStatus = 'is follower pending';
+        break;
+      }
+    }
+    if (relationshipStatus === 'unrelated') for (i = 0; i < rivals.length; i++) {
+      if (followingPending[i]._id === payload._id) {
+        relationshipStatus = 'is following pending';
+        break;
       }
     }
   } catch(e) {
@@ -67,10 +93,10 @@ router.post('/getSearchUser', async (req, res) => {
   }
   return res.send({
     success: true,
+    relationshipStatus,
     settings,
     firstName,
     lastName,
-    follows,
     profilePicture
   })
 })
@@ -90,7 +116,7 @@ router.post('/getSearchUserBasicInfo', async (req, res) => {
   }
 })
 
-router.post('/getSearchUserFitness', async (req, res) => {
+router.post('/getSearchUserFitnessBests', async (req, res) => {
   var { _id } = req.body
   try {
     var { _doc } = await User.findOne({_id: _id}, 'bests totals')

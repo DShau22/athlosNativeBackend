@@ -93,6 +93,7 @@ router.post("/getProfilePic", (req, res) => {
 
 router.post("/uploadProfilePic", multerParser.single("profilePic"), extractToken, (req, res) => {
   // decode user token
+  console.log("updating profile picture")
   var userID;
   jwt.verify(req.token, secret, (err, decoded) => {
     if (err) { return sendError(res, err) }
@@ -103,7 +104,6 @@ router.post("/uploadProfilePic", multerParser.single("profilePic"), extractToken
   console.log(Object.keys(req))
   console.log(req.body)
   console.log(req.file)
-  console.log(req.body.file)
   var { file } = req
   var { url, secure_url, etag } = file
   profileURL = secure_url

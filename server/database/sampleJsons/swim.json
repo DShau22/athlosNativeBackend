@@ -1,0 +1,40 @@
+{
+  "userID": "5d31f00e2b24c7501f3a66a6",
+  "uploadDate": "2020-01-14T08:46:11.014+00:00",
+  "num": 16,
+  "lapTimes": [
+    {"lapTime": 19, "finished": false},
+    {"lapTime": 24, "finished": false},
+    {"lapTime": 26, "finished": false},
+    {"lapTime": 21, "finished": true},
+
+    {"lapTime": 17, "finished": false},
+    {"lapTime": 16, "finished": false},
+    {"lapTime": 16, "finished": false},
+    {"lapTime": 16, "finished": true},
+
+    {"lapTime": 16, "finished": false},
+    {"lapTime": 18, "finished": false},
+    {"lapTime": 16, "finished": false},
+    {"lapTime": 15, "finished": true},
+
+    {"lapTime": 19, "finished": false},
+    {"lapTime": 21, "finished": false},
+    {"lapTime": 20, "finished": false},
+    {"lapTime": 24, "finished": true},
+
+    {"lapTime": 14, "finished": false},
+    {"lapTime": 16, "finished": false},
+    {"lapTime": 19, "finished": false},
+    {"lapTime": 14, "finished": true}
+  ],
+  "strokes": [
+    "F", "B", "R", "F", 
+    "F", "F", "F", "F",
+    "F", "F", "F", "F",
+    "B", "B", "B", "B",
+    "U", "B", "R", "F"
+  ],
+  "calories": 245,
+  "time": 20
+}

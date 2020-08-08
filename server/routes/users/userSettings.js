@@ -17,27 +17,31 @@ function sendError(res, err) {
 }
 
 router.post("/updateSettings", async (req, res) => {
-  var { 
-    seeFriendsList,
+  var {
+    seeCommunity,
     seeFitness,
     seeBasicInfo,
     unitSystem,
     swimLap,
+    seeBests,
+    seeTotals,
     userToken
   } = req.body
-  console.log('updating user settings...')
+  console.log('updating user settings...', req.body)
 
   // make sure all of them are present
-  if (!seeFriendsList || !seeFitness || !seeBasicInfo || !unitSystem || !swimLap) {
+  if (!seeCommunity || !seeFitness || !seeBasicInfo || !unitSystem || !swimLap || !seeBests || !seeTotals) {
     return sendError(res, Error("Something went wrong with saving your settings. Please logout and try again."))
   }
   
   let settings = {
-    seeFriendsList,
+    seeCommunity,
     seeFitness,
     seeBasicInfo,
     unitSystem,
     swimLap,
+    seeBests,
+    seeTotals,
   }
   var userID;
   try {
