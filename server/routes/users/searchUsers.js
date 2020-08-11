@@ -75,13 +75,13 @@ router.post('/getSearchUser', async (req, res) => {
         break;
       }
     }
-    if (relationshipStatus === 'unrelated') for (i = 0; i < rivals.length; i++) {
+    if (relationshipStatus === 'unrelated') for (i = 0; i < followerRequests.length; i++) {
       if (followerRequests[i]._id === payload._id) {
         relationshipStatus = 'is follower pending';
         break;
       }
     }
-    if (relationshipStatus === 'unrelated') for (i = 0; i < rivals.length; i++) {
+    if (relationshipStatus === 'unrelated') for (i = 0; i < followingPending.length; i++) {
       if (followingPending[i]._id === payload._id) {
         relationshipStatus = 'is following pending';
         break;

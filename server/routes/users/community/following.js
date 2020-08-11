@@ -7,9 +7,65 @@ const jwt = require("jsonwebtoken")
 
 // send follow request
 const follow = async (req, res) => {
-  res.send({
-    success: true
-  })  
+  console.log('following')
+  console.log(req.body)
+  // 1. verify user token
+  // 2. Add to the requester's followingPending list
+  // 3. Add to the receiver's followerRequests list
+  // 4. send success response
+  var {
+    userToken,
+    receiverId,
+  } = req.body
+  // 1.
+  try {
+    const requesterDoc = await jwt.verify(userToken, SECRET)
+    var requesterId = requesterDoc._id
+  } catch(e) {
+    return sendError(res, e)
+  }
+
+  // start session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const requester = await User.findOne({ _id: requesterId }).session(session);
+    const receiver = await User.findOne({ _id: receiverId }).session(session);
+    // 2.
+    newFollowingPendingUser = {
+      _id: receiver._id.toString(),
+      firstName: receiver.firstName,
+      lastName: receiver.lastName,
+      profilePicUrl: receiver.profilePicture.profileURL
+    }
+    requester.followingPending = [...requester.followingPending, newFollowingPendingUser]
+    await requester.save();
+
+    // 3.
+    newFollowerRequest = {
+      _id: requester._id.toString(),
+      firstName: requester.firstName,
+      lastName: requester.lastName,
+      profilePicUrl: requester.profilePicture.profileURL
+    }
+    receiver.followerRequests = [...receiver.followerRequests, newFollowerRequest]
+    await receiver.save();
+
+    // commit the changes if everything was successful
+    await session.commitTransaction();
+    // 4.
+    res.send({
+      success: true,
+      message: `successfully follower ${receiverId}`
+    })
+  } catch(e) {
+    console.error(e);
+    // this will rollback any changes made in the database
+    await session.abortTransaction();
+    return sendError(res, e)
+  } finally {
+    session.endSession();
+  }
 }
 
 // remove this person from user's following list
@@ -96,8 +152,11 @@ const cancelFollowRequest = async (req, res) => {
     const userWhosCancelling = await User.findOne({ _id: cancellerId }).session(session);
     // 2.
     userWhosCancelling.followingPending = userWhosCancelling.followingPending.filter(person => {
+      console.log(person._id !== requestReceiverId)
+      console.log(person._id, requestReceiverId)
       return person._id !== requestReceiverId
     })
+    console.log(userWhosCancelling.followingPending)
     await userWhosCancelling.save();
 
     const requestReceiver = await User.findOne({ _id: requestReceiverId }).session(session);
