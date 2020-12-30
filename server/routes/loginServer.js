@@ -281,10 +281,20 @@ router.post('/api/account/signin', (req, res, next) => {
         //get the _id from the queried user
         const _id = user._id
 
-        // token expires in 60 days
-        var expiration = "60d"
+        // token expires in 60 days if we want this
+        // var expiration = "60d"
         // return a signed jwt token using the _id unique to the user
-        jwt.sign({_id}, secret, {expiresIn: expiration}, (err, token) => {
+        // jwt.sign({_id}, secret, {expiresIn: expiration}, (err, token) => {
+        //   if (err) {
+        //     return sendErr(res, err)
+        //   }
+        //   return res.send({
+        //     success: true,
+        //     token,
+        //     messages: ['successfully verified token']
+        //   })
+        // })
+        jwt.sign({_id}, secret, (err, token) => {
           if (err) {
             return sendErr(res, err)
           }

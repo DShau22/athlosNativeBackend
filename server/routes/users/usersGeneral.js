@@ -97,20 +97,24 @@ router.post("/getUsername", (req, res) => {
 
 router.post("/updateProfile", (req, res) => {
   var { userToken, firstName, lastName, bio, gender, height, weight, location, age } = req.body
+  console.log(req.body);
   // remove any undefined fields
   // Object.keys(obj).forEach(key => obj[key] === undefined ? delete obj[key] : {});
 
-  // TO DO AFTER DINNER:
   // MAKE SURE REMOVING UNDEFINED AND NULL WORKS
 
   // decode user token
-  var userID;
+  var userID = null;
   jwt.verify(userToken, secret, (err, decoded) => {
     if (err) {
-      return sendError(res, err)
+      console.log("error updating user profile: ", err);
+      return sendError(res, err);
     }
-    userID = decoded._id
-  })
+    userID = decoded._id;
+  });
+  if (!userID) {
+    return;
+  }
 
   // update database with new profile changes
   User.findOneAndUpdate(
@@ -127,12 +131,12 @@ router.post("/updateProfile", (req, res) => {
     }
   ).exec((err, results) => {
     if (err) {
-      return sendError(res, err)
+      return sendError(res, err);
     } else {
-      res.send({ success: true })
+      res.send({ success: true });
     }
-  })
-})
+  });
+});
 
 router.get("/tokenToID", extractToken, (req, res, next) => {
   jwt.verify(req.token, secret, (err, decoded) => {
