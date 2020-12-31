@@ -91,6 +91,7 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
     success: false,
     message: 'default error message...'
   }
+  console.log(request.headers);
   jwt.verify(tokenizedID, secret, (err, decoded) => {
     const userID = decoded._id;
     // allows the user to get data even if token is expired

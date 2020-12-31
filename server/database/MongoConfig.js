@@ -3,6 +3,14 @@ const bcrypt = require('bcrypt');
 
 const Schema = mongoose.Schema
 
+const DEFAULT_GOALS = {
+  goalSteps: 20000,
+  goalLaps: 50,
+  goalVertical: 12,
+  goalCaloriesBurned: 2000,
+  goalWorkoutTime: 180,
+}
+
 const JumpSchema = new Schema({
   userID: {
     type: String,
@@ -33,6 +41,11 @@ const JumpSchema = new Schema({
     type: Number,
     required: true,
     default: 0
+  },
+  goalVertical: {
+    type: Number,
+    required: true,
+    default: DEFAULT_GOALS.goalVertical,
   }
 })
 
@@ -66,6 +79,11 @@ const RunSchema = new Schema({
     required: true,
     default: 0,
   },
+  goalSteps: {
+    type: Number,
+    required: true,
+    default: DEFAULT_GOALS.goalSteps,
+  }
 })
 
 const SwimSchema = new Schema({
@@ -111,6 +129,11 @@ const SwimSchema = new Schema({
     required: true,
     default: 0
   },
+  goalLaps: {
+    type: Number,
+    required: true,
+    default: DEFAULT_GOALS.goalLaps,
+  }
 })
 
 const UserSchema = new Schema({
@@ -265,8 +288,13 @@ const UserSchema = new Schema({
       swimLap: "25 yd", // 25 yd, 50 m, 25 m, or some custom text like 33.3 yd
       seePeople: "everyone", //everyone, followers, only me
       seeFitness: "everyone", //everyone, followers, only me
+      seeBasicInfo: "everyone", //everyone, followers, only me
     },
-    seeBasicInfo: "everyone", //everyone, followers, only me
+  },
+  goals: {
+    type: Object,
+    required: true,
+    default: DEFAULT_GOALS,
   }
 })
 

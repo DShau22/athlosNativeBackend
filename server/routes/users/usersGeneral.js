@@ -138,6 +138,39 @@ router.post("/updateProfile", (req, res) => {
   });
 });
 
+router.post("/updateWeeklyGoals", (req, res) => {
+  var {
+    userID,
+    goalSteps,
+    goalLaps,
+    goalVertical,
+    goalCaloriesBurned,
+    goalWorkoutTime,
+  } = req.body
+  console.log('update weekly goals body: ', req.body);
+
+  // update database with new profile changes
+  User.findOneAndUpdate(
+    {"_id": userID},
+    {"goals": 
+      {
+        goalSteps,
+        goalLaps,
+        goalVertical,
+        goalCaloriesBurned,
+        goalWorkoutTime,
+      }
+    }
+  ).exec((err, results) => {
+    if (err) {
+      console.log('error in update goals: ', err)
+      return sendError(res, err);
+    } else {
+      res.send({ success: true });
+    }
+  });
+});
+
 router.get("/tokenToID", extractToken, (req, res, next) => {
   jwt.verify(req.token, secret, (err, decoded) => {
     if (err) {
