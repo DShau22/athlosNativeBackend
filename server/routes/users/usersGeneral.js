@@ -9,6 +9,8 @@ const { User } = mongoConfig
 
 // other modules and constants
 const jwt = require("jsonwebtoken")
+const mongoose = require('mongoose')
+const { getLastMonday, getNextSunday } = require("../../utils/dates.js")
 const secret = 'secretkey'
 
 function sendError(res, err) {
@@ -138,7 +140,7 @@ router.post("/updateProfile", (req, res) => {
   });
 });
 
-router.post("/updateWeeklyGoals", (req, res) => {
+router.post("/updateWeeklyGoals", async (req, res) => {
   var {
     userID,
     goalSteps,
@@ -147,28 +149,79 @@ router.post("/updateWeeklyGoals", (req, res) => {
     goalCaloriesBurned,
     goalWorkoutTime,
   } = req.body
-  console.log('update weekly goals body: ', req.body);
 
-  // update database with new profile changes
-  User.findOneAndUpdate(
-    {"_id": userID},
-    {"goals": 
-      {
-        goalSteps,
-        goalLaps,
-        goalVertical,
-        goalCaloriesBurned,
-        goalWorkoutTime,
+  // start session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const user = await User.findOne({ _id: userID }).session(session);
+    user.goals = {
+      goalSteps,
+      goalLaps,
+      goalVertical,
+      goalCaloriesBurned,
+      goalWorkoutTime
+    }
+    await user.save();
+    const lastMonday = getLastMonday();
+    const nextSunday = getNextSunday();
+    console.log(lastMonday.getMonth(), lastMonday.getDate(), lastMonday.getFullYear());
+    const RunActivityData  = mongoConfig.Run;
+    const SwimActivityData = mongoConfig.Swim;
+    const JumpActivityData = mongoConfig.Jump;
+
+    const runSessions = await RunActivityData.find({
+      userID,
+      uploadDate: {
+        $gte: lastMonday,
+        $lte: nextSunday,
       }
+    }).session(session);
+    for (let i = 0; i < runSessions.length; i++) {
+      runSessions[i].goalSteps = goalSteps;
+      await runSessions[i].save();
     }
-  ).exec((err, results) => {
-    if (err) {
-      console.log('error in update goals: ', err)
-      return sendError(res, err);
-    } else {
-      res.send({ success: true });
+
+    const swimSessions = await SwimActivityData.find({
+      userID,
+      uploadDate: {
+        $gte: lastMonday,
+        $lte: nextSunday,
+      }
+    }).session(session);
+    for (let i = 0; i < swimSessions.length; i++) {
+      swimSessions[i].goalLaps = goalLaps;
+      await swimSessions[i].save();
     }
-  });
+
+    const jumpSessions = await JumpActivityData.find({
+      userID,
+      uploadDate: {
+        $gte: lastMonday,
+        $lte: nextSunday,
+      }
+    }).session(session);
+    for (let i = 0; i < jumpSessions.length; i++) {
+      jumpSessions[i].goalVertical = goalVertical;
+      await jumpSessions[i].save();
+    }
+
+    // commit the changes if everything was successful
+    await session.commitTransaction();
+    // send success response back to client
+    return res.send({
+      success: true,
+      message: `Successfully updated your goals!`
+    });
+  } catch(e) {
+    console.log('Error in updating weekly goals: ', e.toString());
+    // this will rollback any changes made in the database
+    await session.abortTransaction();
+    return sendError(res, e.toString());
+  } finally {
+    session.endSession();
+  }
 });
 
 router.get("/tokenToID", extractToken, (req, res, next) => {

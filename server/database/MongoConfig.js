@@ -20,7 +20,6 @@ const JumpSchema = new Schema({
   uploadDate: {
     type: Date,
     required: true,
-    default: '',
   },
   num: {
     type: Number,
