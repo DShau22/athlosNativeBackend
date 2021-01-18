@@ -116,59 +116,63 @@ function parseAuthHeader(auth) {
 }
 
 module.exports = async function upload(req, res, next) {
+  console.log("upload: ", req.body);
+  res.send({
+    success: false,
+    message: 'test',
+  });
+  // var form = new IncomingForm()
+  // // i dont think form.parse or jwt.verify can return promises :(
+  // form.parse(req, async function(err, fields, files) {
+  //   if (err) throw err
+  //   console.log("parsing form...")
+  //   //console.log(files)
+  //   var converted;
+  //   // convert encoded file to correct byte file
+  //   try {
+  //     var filePath = files.uploadedFile.path
+  //     converted = await reader.unscrambleSessionBytes(filePath)
+  //   } catch(e) {
+  //     console.log("error converted the uploaded file")
+  //     throw e
+  //   }
 
-  var form = new IncomingForm()
-  // i dont think form.parse or jwt.verify can return promises :(
-  form.parse(req, async function(err, fields, files) {
-    if (err) throw err
-    console.log("parsing form...")
-    //console.log(files)
-    var converted;
-    // convert encoded file to correct byte file
-    try {
-      var filePath = files.uploadedFile.path
-      converted = await reader.readEncoded(filePath)
-    } catch(e) {
-      console.log("error converted the uploaded file")
-      throw e
-    }
+  //   jwt.verify(parseAuthHeader(req.headers['authorization']), secret, async function(err, decoded) {
+  //     console.log("verifying...")
+  //     // invalid token!
+  //     if (err) {
+  //       console.error(err)
+  //       return res.send({
+  //         success: false,
+  //         messages: [err.toString()]
+  //       })
+  //     }
 
-    jwt.verify(parseAuthHeader(req.headers['authorization']), secret, async function(err, decoded) {
-      console.log("verifying...")
-      // invalid token!
-      if (err) {
-        console.error(err)
-        return res.send({
-          success: false,
-          messages: [err.toString()]
-        })
-      }
+  //     console.log("decoded is: ", decoded)
+  //     // pass the converted byte file and the decoded _id to make activity jsons
+  //     try {
+  //       var activityJson = jsonMaker.toJson(converted, decoded._id)
+  //       var jumpJson = activityJson.jumpJson
+  //       var runJson = activityJson.runJson
+  //       var swimJson = activityJson.swimJson
+  //     } catch (e) {
+  //       console.error(e)
+  //       return res.send({
+  //         success: false,
+  //         messages: [e.toString()]
+  //       })
+  //     }
 
-      console.log("decoded is: ", decoded)
-      // pass the converted byte file and the decoded _id to make activity jsons
-      try {
-        var activityJson = jsonMaker.toJson(converted, decoded._id)
-        var jumpJson = activityJson.jumpJson
-        var runJson = activityJson.runJson
-        var swimJson = activityJson.swimJson
-      } catch (e) {
-        console.error(e)
-        return res.send({
-          success: false,
-          messages: [e.toString()]
-        })
-      }
-
-      var result = await update(decoded._id, jumpJson, runJson, swimJson)
-      if (result.success) {
-        return res.send({
-          success: true,
-          messages: ['successfully updated your recent activities']
-        })
-      } else {
-        // something went wrong with uploading the database. Probably schema didn't match
-        return res.status(500).send(result)
-      }
-    })
-  })
+  //     var result = await update(decoded._id, jumpJson, runJson, swimJson)
+  //     if (result.success) {
+  //       return res.send({
+  //         success: true,
+  //         messages: ['successfully updated your recent activities']
+  //       })
+  //     } else {
+  //       // something went wrong with uploading the database. Probably schema didn't match
+  //       return res.status(500).send(result)
+  //     }
+  //   })
+  // })
 }

@@ -10,6 +10,7 @@ const {
   emptyJumpSession,
   emptySwimSession, 
 } = require('../constants');
+const { unscrambleSessionBytes, createSessionJsons } = require('../utils/fitness');
 const express = require('express')
 const extractToken = require("./extract")
 const router = express.Router()
@@ -182,6 +183,26 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
       });
   });
 });
+
+/**
+ * Backend route that takes in a list of scrambled byte arrays, unscrambles them, decodes them
+ * into session statistics, and updates the user's fitness in the Mongo DB.
+ */
+router.post("/upload", async (req, res) => {
+  const { sessionByteList, userToken } = req.body;
+  var userID;
+  try {
+    userID = await jwt.verify(userToken, secret)
+  } catch(e) {
+    return sendError(res, e);
+  }
+  sessionByteList.forEach(({date, sessionBytes}, idx) => {
+    const sessionDate = new Date(date);
+    const rawBytes = Buffer.from(sessionBytes, 'utf8');
+    const unscrambledBytes = unscrambleSessionBytes(rawBytes);
+    const sessionJsons = createSessionJsons(unscrambledBytes, userID, sessionDate);
+  });
+})
 
 // IDK WHY I WROTE THIS HUH
 // router.post("/getUserActivityData", async (request, response) => {

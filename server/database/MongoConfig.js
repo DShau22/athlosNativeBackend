@@ -9,7 +9,20 @@ const DEFAULT_GOALS = {
   goalVertical: 12,
   goalCaloriesBurned: 2000,
   goalWorkoutTime: 180,
-}
+};
+
+const DEFAULT_REF_TIMES = {
+  fly: [22, 20],
+  back: [30, 26],
+  breast: [32, 28],
+  free: [25, 22]
+};
+
+const DEFAULT_RUN_EFFORT_CADENCES = [30, 65, 80];
+
+const DEFAULT_RUN_EFFORTS = [1, 2, 4, 6]; // efforts inc/dec after 30 second intervals
+
+const DEFAULT_SWIM_EFFORTS = [4, 8, 12, 16]; // efforts increment after turns
 
 const JumpSchema = new Schema({
   userID: {
@@ -284,7 +297,7 @@ const UserSchema = new Schema({
     required: true,
     default: {
       unitSystem: "English", // English, metric
-      swimLap: "25 yd", // 25 yd, 50 m, 25 m, or some custom text like 33.3 yd
+      poolLength: "25 yd", // 25 yd, 50 m, 25 m, or some custom text like 33.3 yd
       seePeople: "everyone", //everyone, followers, only me
       seeFitness: "everyone", //everyone, followers, only me
       seeBasicInfo: "everyone", //everyone, followers, only me
@@ -294,8 +307,28 @@ const UserSchema = new Schema({
     type: Object,
     required: true,
     default: DEFAULT_GOALS,
+  },
+  referenceTimes: {
+    type: Object,
+    required: true,
+    default: DEFAULT_REF_TIMES,
+  },
+  swimEfforts: {
+    type: Array,
+    required: true,
+    default: DEFAULT_SWIM_EFFORTS,
+  },
+  runEfforts: {
+    type: Array,
+    required: true,
+    default: DEFAULT_RUN_EFFORTS,
+  },
+  cadenceThresholds: {
+    type: Array,
+    required: true,
+    default: DEFAULT_RUN_EFFORT_CADENCES,
   }
-})
+});
 
 //add text indices for searching
 UserSchema.index({firstName: 'text', lastName: 'text'})

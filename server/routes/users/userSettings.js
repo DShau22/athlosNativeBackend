@@ -22,7 +22,6 @@ router.post("/updateSettings", async (req, res) => {
     seeFitness,
     seeBasicInfo,
     unitSystem,
-    swimLap,
     seeBests,
     seeTotals,
     userToken
@@ -30,7 +29,7 @@ router.post("/updateSettings", async (req, res) => {
   console.log('updating user settings...', req.body)
 
   // make sure all of them are present
-  if (!seeCommunity || !seeFitness || !seeBasicInfo || !unitSystem || !swimLap || !seeBests || !seeTotals) {
+  if (!seeCommunity || !seeFitness || !seeBasicInfo || !unitSystem || !seeBests || !seeTotals) {
     return sendError(res, Error("Something went wrong with saving your settings. Please logout and try again."))
   }
   
@@ -39,7 +38,6 @@ router.post("/updateSettings", async (req, res) => {
     seeFitness,
     seeBasicInfo,
     unitSystem,
-    swimLap,
     seeBests,
     seeTotals,
   }
