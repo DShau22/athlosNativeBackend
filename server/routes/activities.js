@@ -4,32 +4,34 @@ const {
   getNextSunday,
   sameDate,
 } = require('../utils/dates');
-
-const {
-  emptyRunSession,
-  emptyJumpSession,
-  emptySwimSession, 
-} = require('../constants');
-const { unscrambleSessionBytes, createSessionJsons } = require('../utils/fitness');
 const express = require('express')
 const extractToken = require("./extract")
 const router = express.Router()
 
-const mongoConfig = require("../database/MongoConfig")
-const secret = 'secretkey'
-const jwt = require("jsonwebtoken")
+const { unscrambleSessionBytes, createSessionJsons } = require('../utils/fitness');
+const {User, Swim, Run, Jump} = require("../database/MongoConfig");
+const mongoose = require('mongoose');
+const secret = 'secretkey';
+const jwt = require("jsonwebtoken");
 
 // maximum number of activity documents to query for a given activity
 const MAX_DOCUMENTS = 26;
 
+function sendError(res, err) {
+  return res.send({
+    success: false,
+    message: err.toString(),
+  })
+}
+
 function getModel(activity) {
   switch(activity) {
     case "jump":
-      return mongoConfig.Jump
+      return Jump
     case "run":
-      return mongoConfig.Run
+      return Run
     case "swim":
-      return mongoConfig.Swim
+      return Swim
   }
 }
 
@@ -189,47 +191,120 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
  * into session statistics, and updates the user's fitness in the Mongo DB.
  */
 router.post("/upload", async (req, res) => {
-  const { sessionByteList, userToken } = req.body;
+  const { date, sessionBytes, userToken } = req.body;
+  // console.log(date, sessionBytes, userToken);
   var userID;
   try {
     userID = await jwt.verify(userToken, secret)
+    userID = userID._id;
   } catch(e) {
     return sendError(res, e);
   }
-  sessionByteList.forEach(({date, sessionBytes}, idx) => {
-    const sessionDate = new Date(date);
-    const rawBytes = Buffer.from(sessionBytes, 'utf8');
-    const unscrambledBytes = unscrambleSessionBytes(rawBytes);
-    const sessionJsons = createSessionJsons(unscrambledBytes, userID, sessionDate);
-  });
-})
-
-// IDK WHY I WROTE THIS HUH
-// router.post("/getUserActivityData", async (request, response) => {
-//   console.log("got request")
-//   var { activity, userID } = request.body
-
-//   // Query the latest upload. Change -1 to 1 to get the oldest
-//   var ActivityData = getModel(activity.toLowerCase())
-//   // don't include the __v:, uploadDate, userID, _id fields
-//   var projection = {__v: false,}
-//   ActivityData
-//     // finds the userID where the decoded token(_id) matches userID field
-//     .find({userID: userID}, projection)
-//     .sort({'uploadDate': -1})
-//     .exec(function(err, data) {
-//       if (err) throw err
-//       console.log("queried result is: ", data)
-//       var activityData = [] // A list of session objects for run/jump/swim. Each session object is 1 day.
-//       if (data !== null) {
-//         activityData = JSON.parse(JSON.stringify(data))
-//       }
-//       // send request object with queried data written to the body
-//       response.send({
-//         success: true,
-//         activityData,
-//       })
-//     })
-// })
+  const sessionDateMidnight = new Date(date);
+  sessionDateMidnight.setHours(0, 0, 0, 0);
+  const nextDayMidnight = new Date();
+  nextDayMidnight.setDate(sessionDateMidnight.getDate() + 1);
+  nextDayMidnight.setHours(0, 0, 0, 0);
+  const rawBytes = Buffer.from(sessionBytes, 'base64');
+  const unscrambledBytes = unscrambleSessionBytes(rawBytes);
+  const sessionJsons = createSessionJsons(unscrambledBytes, userID, sessionDateMidnight);
+  const {run, swim, jump} = sessionJsons;
+  console.log("session jsons: ", sessionJsons);
+  // begin mongo transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    // update any run sessions
+    var runSession = await Run.findOne({
+      userID: userID,
+      uploadDate: {
+        $gte: sessionDateMidnight,
+        $lt: nextDayMidnight,
+      }
+    }).session(session);
+    console.log("runSession: ", runSession);
+    if (runSession) {
+      if (Array.isArray(runSession)) {
+        runSession = runSession[0];
+      }
+      runSession.num += run.num;
+      runSession.cadences.push(...run.cadences);
+      runSession.calories += run.calories;
+      runSession.time += Math.ceil(run.time);
+      await runSession.save();
+    } else {
+      if (run.time > 0) {
+        console.log("saving new run session...");
+        const newRunSession = new Run(run);
+        await newRunSession.save();
+      }
+    }
+    // update any swim sessions
+    var swimSession = await Swim.findOne({
+      userID: userID,
+      uploadDate: {
+        $gte: sessionDateMidnight,
+        $lt: nextDayMidnight,
+      }
+    }).session(session);
+    console.log("swimSession: ", swimSession);
+    if (swimSession) {
+      if (Array.isArray(swimSession)) {
+        swimSession = swimSession[0];
+      }
+      swimSession.num += swim.num;
+      swimSession.strokes.push(...swim.strokes);
+      swimSession.lapTimes.push(...swim.lapTimes);
+      swimSession.calories += swim.calories;
+      swimSession.time += Math.ceil(swim.time);
+      await swimSession.save();
+    } else {
+      if (swim.time > 0) {
+        console.log("saving new swim session...");
+        const newSwimSession = new Swim(swim);
+        await newSwimSession.save();
+      }
+    }
+    // update any jump sessions
+    var jumpSession = await Jump.findOne({
+      userID: userID,
+      uploadDate: {
+        $gte: sessionDateMidnight,
+        $lt: nextDayMidnight,
+      }
+    }).session(session);
+    console.log("jumpSession: ", jumpSession);
+    if (jumpSession) {
+      if (Array.isArray(jumpSession)) {
+        jumpSession = jumpSession[0];
+      }
+      jumpSession.num += jump.num;
+      jumpSession.heights.push(...jump.heights);
+      jumpSession.calories += jump.calories;
+      jumpSession.time += Math.ceil(jump.time);
+      await jumpSession.save();
+    } else {
+      if (jump.time > 0) {
+        console.log("saving new jump session...");
+        const newJumpSession = new Jump(jump);
+        await newJumpSession.save();
+      }
+    }
+    // commit the changes if everything was successful
+    await session.commitTransaction();
+    // send success response back to client
+    return res.send({
+      success: true,
+      message: `Successfully updated your fitness!`
+    });
+  } catch(e) {
+    console.log('Error in updating your fitness: ', e.toString());
+    // this will rollback any changes made in the database
+    await session.abortTransaction();
+    return sendError(res, e.toString());
+  } finally {
+    session.endSession();
+  }
+});
 
 module.exports = router
