@@ -15,7 +15,9 @@ const secret = 'secretkey';
 const jwt = require("jsonwebtoken");
 
 // maximum number of activity documents to query for a given activity
-const MAX_DOCUMENTS = 26;
+// max possible days you can go back according to frontend is 27 mondays ago
+// 27 not 26 cuz if the current day is not a monday then you'll go back 27 else 26.
+const MAX_DOCUMENTS = 27 * 7;
 
 function sendError(res, err) {
   return res.send({
@@ -88,13 +90,14 @@ const activityToSession = (activity, uploadDate, userID) => {
 router.get("/getUserFitness", extractToken, (request, response, next) => {
   const tokenizedID = request.token;
   const activity = request.headers["activity"];
+  console.log("getting user fitness for: ", activity);
   // Last monday with up to date data. Get all records from this date until the next sunday after today
   const lastUpdated = new Date(parseFloat(request.headers["last_updated"])); 
+  lastUpdated.setHours(0,0,0,0);
   var resBody = {
     success: false,
     message: 'default error message...'
   }
-  console.log(request.headers);
   jwt.verify(tokenizedID, secret, (err, decoded) => {
     const userID = decoded._id;
     // allows the user to get data even if token is expired
@@ -111,11 +114,10 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
     // don't include the __v:, uploadDate, userID, _id fields
     var projection = {__v: false,}
     ActivityData
-      // finds the userID where the decoded token(_id) matches userID field
       .find({
         userID,
         uploadDate: {
-          $gt: lastUpdated
+          $gte: lastUpdated
         }
       }, projection)
       .sort({'uploadDate': 1})

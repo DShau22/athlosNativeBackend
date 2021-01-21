@@ -97,6 +97,21 @@ router.post("/getUsername", (req, res) => {
   })
 })
 
+router.post("/updateDeviceID", (req, res) => {
+  const { userID, deviceID } = req.body;
+  // update database with new profile changes
+  User.findOneAndUpdate(
+    {"_id": userID},
+    { deviceID, }
+  ).exec((err, results) => {
+    if (err) {
+      return sendError(res, err);
+    } else {
+      return res.send({ success: true });
+    }
+  });
+});
+
 router.post("/updateProfile", (req, res) => {
   var { userToken, firstName, lastName, bio, gender, height, weight, location, age } = req.body
   console.log(req.body);

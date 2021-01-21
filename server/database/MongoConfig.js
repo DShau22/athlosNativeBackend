@@ -173,9 +173,9 @@ const UserSchema = new Schema({
     required: true,
     default: ''
   },
-  productCode: {
+  deviceID: {
     type: String,
-    required: false,
+    required: true,
     default: ''
   },
   registerDate: {
