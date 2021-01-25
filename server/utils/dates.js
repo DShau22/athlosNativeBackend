@@ -9,20 +9,27 @@ function parseDate(uploadDate) {
 
 // returns a date object representing last Monday from the day that is passed in
 function getLastMonday(day) { // if day isn't passed in, assume its the actual today
-  var lastMonday = day;
+  var lastMonday = new Date(day);
   if (!day) {
     lastMonday = new Date();
   }
-  lastMonday.setDate(lastMonday.getDate() - lastMonday.getDay() + 1); // should be the monday of this week
-  lastMonday.setHours(0,0,0,0);
+  if (lastMonday.getDay() === 0) { // if it's sunday, just subtract 6
+    lastMonday.setDate(lastMonday.getDate() - 6);
+  } else {
+    lastMonday.setDate(lastMonday.getDate() - lastMonday.getDay() + 1); // should be the monday of this week
+    lastMonday.setHours(0,0,0,0);
+  }
   return lastMonday;
 }
 
 // returns a date object representing next Sunday from the day that is passed in
 function getNextSunday(day) {
-  var lastMonday = day;
+  var lastMonday = new Date(day);
   if (!day) {
     lastMonday = new Date();
+  }
+  if (lastMonday.getDay() === 0) {
+    return lastMonday;
   }
   lastMonday.setDate(lastMonday.getDate() - lastMonday.getDay() + 1); // should be the monday of this week
   lastMonday.setHours(0,0,0,0);

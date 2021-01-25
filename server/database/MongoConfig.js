@@ -44,7 +44,7 @@ const JumpSchema = new Schema({
     required: true,
     default: [],
   },
-  calories: {
+  shotsMade: {
     type: Number,
     required: true,
     default: 0,

@@ -7,8 +7,13 @@ const {
 const express = require('express')
 const extractToken = require("./extract")
 const router = express.Router()
+const fs = require('fs');
 
-const { unscrambleSessionBytes, createSessionJsons } = require('../utils/fitness');
+const {
+  unscrambleSessionBytes,
+  createSessionJsons,
+  calcReferenceTimes,
+} = require('../utils/fitness');
 const {User, Swim, Run, Jump} = require("../database/MongoConfig");
 const mongoose = require('mongoose');
 const secret = 'secretkey';
@@ -81,7 +86,7 @@ const activityToSession = (activity, uploadDate, userID) => {
         uploadDate,
         num: 0,
         heights: [],
-        calories: 0,
+        shotsMade: 0,
         time: 0
       }
   }
@@ -92,6 +97,7 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
   const activity = request.headers["activity"];
   console.log("getting user fitness for: ", activity);
   // Last monday with up to date data. Get all records from this date until the next sunday after today
+  // (unless today is sunday then just till today)
   const lastUpdated = new Date(parseFloat(request.headers["last_updated"])); 
   lastUpdated.setHours(0,0,0,0);
   var resBody = {
@@ -137,9 +143,11 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
         }
         const today = new Date();
         const nextSunday = getNextSunday(today); // hours are set to 0,0,0,0 so all comps done by date
+        console.log("next sunday: ", nextSunday);
         var weekBuffer = []; // list that holds a weeks worth of data. Flush it to the result when it fills up.
         var activityData = []; // List of lists. Each sublist is a week with session data.
         var lastSession = getLastMonday(lastUpdated); // hours are set to 0,0,0,0 so all comps done by date
+        console.log("last monday: ", lastSession);
         sessions.forEach(session => {
           // add daily fitness data (even if it's empty) up through the date of the session
           const nextSessionDate = new Date(session.uploadDate);
@@ -177,7 +185,6 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
             message: "week buffer should be empty but it is not!",
           });
         } else { // for some reason you need this else tf
-          console.log(activityData);
           reverse(activityData);
           response.send({
             success: true,
@@ -194,6 +201,7 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
  */
 router.post("/upload", async (req, res) => {
   const { date, sessionBytes, userToken } = req.body;
+  fs.writeFile('sadata.txt', Buffer.from(sessionBytes, 'base64'), (err) => console.log("finished writing sadata", err));
   // console.log(date, sessionBytes, userToken);
   var userID;
   try {
@@ -202,6 +210,7 @@ router.post("/upload", async (req, res) => {
   } catch(e) {
     return sendError(res, e);
   }
+  console.log("userID: ", userID);
   const sessionDateMidnight = new Date(date);
   sessionDateMidnight.setHours(0, 0, 0, 0);
   const nextDayMidnight = new Date();
@@ -282,7 +291,7 @@ router.post("/upload", async (req, res) => {
       }
       jumpSession.num += jump.num;
       jumpSession.heights.push(...jump.heights);
-      jumpSession.calories += jump.calories;
+      jumpSession.shotsMade += jump.shotsMade;
       jumpSession.time += Math.ceil(jump.time);
       await jumpSession.save();
     } else {
@@ -292,6 +301,37 @@ router.post("/upload", async (req, res) => {
         await newJumpSession.save();
       }
     }
+
+    // update the user nEfforts, thresholds, etcs
+    const user = await User.findOne({
+      _id: userID,
+    }).session(session);
+    console.log("user: ", user);
+    // user had to swim for 8 or more laps
+    if (swim.lapTimes.length >= 8) {
+      user.referenceTimes = calcReferenceTimes(user.referenceTimes, swim);
+      const oldAverageNumLaps = user.swimEfforts[0] / 0.2;
+      const newMovingAvgNumLaps = (7 * oldAverageNumLaps)/8 + swim.lapTimes.length/8;
+      user.swimEfforts = [
+        newMovingAvgNumLaps * .2, // level 1
+        newMovingAvgNumLaps * .3, // level 2
+        newMovingAvgNumLaps * .4, // level 3
+        newMovingAvgNumLaps * .6, // level 4
+      ];
+    }
+    // user had to run for 3 or more minutes for run efforts to be updated
+    if (run.cadences.length >= 6) {
+      const oldAvgNumHalfMins = user.runEfforts[0] / 0.1;
+      const newAvgNumHalfMins = (7 * oldAvgNumHalfMins)/8 + run.cadences.length/8;
+      user.runEfforts = [
+        newAvgNumHalfMins * .1,  // level 1
+        newAvgNumHalfMins * .25, // level 2
+        newAvgNumHalfMins * .50, // level 3
+        newAvgNumHalfMins * .70, // level 4
+      ];
+    }
+    await user.save();
+
     // commit the changes if everything was successful
     await session.commitTransaction();
     // send success response back to client

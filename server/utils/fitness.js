@@ -1,3 +1,7 @@
+const eventTable = [
+  // 50 yd free
+];
+
 // all the characters that the first marker byte could be
 const markerSet = new Set([
   '3'.charCodeAt(0),
@@ -9,10 +13,28 @@ const markerSet = new Set([
   'Y'.charCodeAt(0),
   'W'.charCodeAt(0),
   'R'.charCodeAt(0),
+  'M'.charCodeAt(0), // switched modes
 ]);
+const M_ascii = 'M'.charCodeAt(0);
+const basketball_mode = '5'.charCodeAt(0);
 const semicolon_ascii = ";".charCodeAt(0);
 
-const swimSet = new Set(['U'.charCodeAt(0), 'Y'.charCodeAt(0), 'O'.charCodeAt(0), 'F'.charCodeAt(0)]); //fly back breast free
+const FLY = 'U';
+const BACK = 'Y';
+const BREAST = 'O';
+const FREE = 'F';
+
+//fly back breast free or any of the races
+const swimSet = new Set([
+  FLY.charCodeAt(0),
+  BACK.charCodeAt(0),
+  BREAST.charCodeAt(0),
+  FREE.charCodeAt(0),
+]);
+// Array(35).forEach((_, idx) => {
+//   swimSet.add(idx);
+//   markerSet.add(idx);
+// });
 const jumpSet = new Set(['3'.charCodeAt(0), '4'.charCodeAt(0), '5'.charCodeAt(0)]);
 const stepSet = new Set(['R'.charCodeAt(0), 'W'.charCodeAt(0)]);
 
@@ -62,12 +84,17 @@ const unscrambleSessionBytes = (byteArr) => {
     if ((byteArr[idx+15] === semicolon_ascii) && validate(byteArr[idx], idx)) {
       // console.log(`valid!: ${byteArr[idx]}`);
       cEvent = byteArr[idx];
-      lapCount = merge_two_bytes(byteArr[idx + 1],byteArr[idx + 2]);
-      ndata = merge_three_bytes(byteArr[idx + 5], byteArr[idx + 4], byteArr[idx + 6]);
-      stepCount = merge_three_bytes(byteArr[idx + 10], byteArr[idx + 8], byteArr[idx + 9]);
-      lapTime = merge_three_bytes(byteArr[idx + 11], byteArr[idx + 7], byteArr[idx + 3]);
-      calorie = merge_three_bytes(byteArr[idx + 12], byteArr[idx + 13], byteArr[idx + 14]);
-      converted.push([cEvent, lapCount, ndata, stepCount, lapTime, calorie]);
+      if (cEvent === M_ascii) {
+        converted.push([cEvent, 0, 0, 0, 0, 0]);
+      } else {
+        lapCount = merge_two_bytes(byteArr[idx + 1],byteArr[idx + 2]);
+        ndata = merge_three_bytes(byteArr[idx + 5], byteArr[idx + 4], byteArr[idx + 6]);
+        stepCount = merge_three_bytes(byteArr[idx + 10], byteArr[idx + 8], byteArr[idx + 9]);
+        lapTime = merge_three_bytes(byteArr[idx + 11], byteArr[idx + 7], byteArr[idx + 3]);
+        calorie = merge_three_bytes(byteArr[idx + 12], byteArr[idx + 13], byteArr[idx + 14]);
+        converted.push([cEvent, lapCount, ndata, stepCount, lapTime, calorie]);
+        // console.log("ndata: ", ndata);
+      }
       idx += 16;
     } else {
       idx++;
@@ -90,6 +117,7 @@ const calcHeight = (hangtime) => {
  * @param {Date} sessionDate: the date that this session byte array was stored on the user's phone
  */
 const createSessionJsons = (unscrambled, userID, sessionDate) => {
+  console.log("unscrambled: ", unscrambled);
   const sessionJsons = {
     run: {
       userID,
@@ -113,8 +141,11 @@ const createSessionJsons = (unscrambled, userID, sessionDate) => {
       uploadDate: sessionDate,
       num: 0,
       heights: [],
-      calories: 0,
+      shotsMade: 0,
       time: 0
+    },
+    movingAverages: {
+
     }
   }
   var statReportIdx = 0;
@@ -142,9 +173,10 @@ const createSessionJsons = (unscrambled, userID, sessionDate) => {
       }
       const lastRunStatReport = unscrambled[statReportIdx - 1];
       sessionJsons.run.num += lastRunStatReport[3];
-      sessionJsons.run.calories += lastRunStatReport[5];
+      sessionJsons.run.calories += lastRunStatReport[5] / 10;
       sessionJsons.run.time += lastRunStatReport[2] / 600;
     } else if (swimSet.has(cEvent)) {
+      // console.log("swim: ", statReport);
       while (swimSet.has(cEvent) && statReportIdx < unscrambled.length) {
         sessionJsons.swim.lapTimes.push({
           lapTime: statReport[4] / 10, // laptime in seconds
@@ -158,7 +190,8 @@ const createSessionJsons = (unscrambled, userID, sessionDate) => {
       }
       const lastSwimStatReport = unscrambled[statReportIdx - 1];
       sessionJsons.swim.num = sessionJsons.swim.strokes.length;
-      sessionJsons.swim.calories += lastSwimStatReport[5];
+      sessionJsons.swim.calories += lastSwimStatReport[5] / 10;
+      // console.log("last swim stat report: ", lastSwimStatReport);
       sessionJsons.swim.time += lastSwimStatReport[2] / 600;
     } else if (jumpSet.has(cEvent)) {
       while (jumpSet.has(cEvent) && statReportIdx < unscrambled.length) {
@@ -173,7 +206,7 @@ const createSessionJsons = (unscrambled, userID, sessionDate) => {
         cEvent = statReport ? statReport[0] : null;
       }
       const lastJumpStatReport = unscrambled[statReportIdx - 1];
-      sessionJsons.jump.calories += lastJumpStatReport[5];
+      sessionJsons.jump.shotsMade += cEvent === basketball_mode ? lastJumpStatReport[5] : 0;
       sessionJsons.jump.time += lastJumpStatReport[2] / 3000;
     } else {
       console.log(`not a valid cEvent in the unscrambled array: ${cEvent}`);
@@ -183,7 +216,41 @@ const createSessionJsons = (unscrambled, userID, sessionDate) => {
   return sessionJsons;
 }
 
+const calcReferenceTimes = (oldRefTimes, swimJson) => {
+  const { lapTimes, strokes } = swimJson;
+  var flyAvg = oldRefTimes.fly[0] / 1.1;
+  var backAvg = oldRefTimes.back[0] / 1.1;
+  var breastAvg = oldRefTimes.breast[0] / 1.1;
+  var freeAvg = oldRefTimes.free[0] / 1.1;
+  for (let i = 0; i < lapTimes.length; i++) {
+    switch(strokes[i]) {
+      case FLY:
+        flyAvg = (7*flyAvg)/8 + lapTimes[i].lapTime/8;
+        break;
+      case BACK:
+        backAvg = (7*backAvg)/8 + lapTimes[i].lapTime/8;
+        break;
+      case BREAST:
+        breastAvg = (7*breastAvg)/8 + lapTimes[i].lapTime/8;
+        break;
+      case FREE:
+        freeAvg = (7*freeAvg)/8 + lapTimes[i].lapTime/8;
+        break;
+      default:
+        console.log(`${strokes[i]} is not valid`);
+        break;
+    }
+  }
+  return {
+    fly: [flyAvg * 1.1, flyAvg * .9],
+    back: [backAvg * 1.1, backAvg * .9],
+    breast: [breastAvg * 1.1, breastAvg * .9],
+    free: [freeAvg * 1.1, freeAvg * .9],
+  };
+}
+
 module.exports = {
   unscrambleSessionBytes,
   createSessionJsons,
+  calcReferenceTimes
 }
