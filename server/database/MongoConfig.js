@@ -175,7 +175,7 @@ const UserSchema = new Schema({
   },
   deviceID: {
     type: String,
-    required: true,
+    required: false,
     default: ''
   },
   registerDate: {
@@ -269,17 +269,18 @@ const UserSchema = new Schema({
   },
   bests: {
     type: Object,
-    required: true,
+    required: false,
     default: {
       highestJump: 0,
       mostSteps: 0,
       mostLaps: 0,
+      mostCalories: 0,
       bestEvent: {}
     }
   },
   totals: {
     type: Object,
-    required: true,
+    required: false,
     default: {
       steps: 0,
       laps: 0,
@@ -294,7 +295,7 @@ const UserSchema = new Schema({
   },
   settings: {
     type: Object,
-    required: true,
+    required: false,
     default: {
       unitSystem: "English", // English, metric
       poolLength: "25 yd", // 25 yd, 50 m, 25 m, or some custom text like 33.3 yd
@@ -305,27 +306,27 @@ const UserSchema = new Schema({
   },
   goals: {
     type: Object,
-    required: true,
+    required: false,
     default: DEFAULT_GOALS,
   },
   referenceTimes: {
     type: Object,
-    required: true,
+    required: false,
     default: DEFAULT_REF_TIMES,
   },
   swimEfforts: {
     type: Array,
-    required: true,
+    required: false,
     default: DEFAULT_SWIM_EFFORTS,
   },
   runEfforts: {
     type: Array,
-    required: true,
+    required: false,
     default: DEFAULT_RUN_EFFORTS,
   },
   cadenceThresholds: {
     type: Array,
-    required: true,
+    required: false,
     default: DEFAULT_RUN_EFFORT_CADENCES,
   }
 });

@@ -104,9 +104,9 @@ const unscrambleSessionBytes = (byteArr) => {
 }
 
 const calcHeight = (hangtime) => {
-  // truncate to nearest tenths digit
-  const heightInTenths = Math.floor((hangtime * hangtime)/2);
-  const heightInInches = heightInTenths / 10;
+  // to nearest hundreths digit
+  const heightInHundreths = hangtime * hangtime * 2;
+  const heightInInches = heightInHundreths / 100;
   return heightInInches;
 }
 

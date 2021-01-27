@@ -85,6 +85,7 @@ router.post('/api/account/signup', function(req, res, next) {
 
   // MAKE NOTE TO MAYBE SCRAP ASYNC JS CODE LATER
   // LOOKS UGLY AF TO MAINTAIN
+  // CHANGE THIS INTO USING MONGO SESSIONS 
 
   var parallelCb = (err, results) => {
     console.log("parrallel finished")
