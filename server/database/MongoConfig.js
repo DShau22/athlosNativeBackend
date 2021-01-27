@@ -191,7 +191,7 @@ const UserSchema = new Schema({
   age: {
     type: Number,
     required: false,
-    default: -1
+    default: 0
   },
   // Below are arrays for followers, following, and rivals. They are arrays of objects that contain
   // id, fname, lname, profilepicUrl
@@ -297,7 +297,7 @@ const UserSchema = new Schema({
     type: Object,
     required: false,
     default: {
-      unitSystem: "English", // English, metric
+      unitSystem: "english", // english, metric
       poolLength: "25 yd", // 25 yd, 50 m, 25 m, or some custom text like 33.3 yd
       seePeople: "everyone", //everyone, followers, only me
       seeFitness: "everyone", //everyone, followers, only me
