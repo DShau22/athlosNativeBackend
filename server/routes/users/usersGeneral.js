@@ -172,11 +172,11 @@ router.post("/updateWeeklyGoals", async (req, res) => {
   try {
     const user = await User.findOne({ _id: userID }).session(session);
     user.goals = {
-      goalSteps,
-      goalLaps,
-      goalVertical,
-      goalCaloriesBurned,
-      goalWorkoutTime
+      goalSteps: goalSteps || goalSteps === 0 ? goalSteps : user.goals.goalSteps,
+      goalLaps: goalLaps || goalLaps === 0 ? goalLaps : user.goals.goalLaps,
+      goalVertical: goalVertical || goalVertical === 0 ? goalVertical : user.goals.goalVertical,
+      goalCaloriesBurned: goalCaloriesBurned || goalCaloriesBurned === 0 ? goalCaloriesBurned : user.goals.goalCaloriesBurned,
+      goalWorkoutTime: goalWorkoutTime || goalWorkoutTime === 0 ? goalWorkoutTime : user.goals.goalWorkoutTime,
     }
     await user.save();
     const lastMonday = getLastMonday();

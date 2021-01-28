@@ -299,9 +299,11 @@ const UserSchema = new Schema({
     default: {
       unitSystem: "english", // english, metric
       poolLength: "25 yd", // 25 yd, 50 m, 25 m, or some custom text like 33.3 yd
-      seePeople: "everyone", //everyone, followers, only me
+      seeCommunity: "everyone",
       seeFitness: "everyone", //everyone, followers, only me
-      seeBasicInfo: "everyone", //everyone, followers, only me
+      seeBasicInfo: "everyone", //everyone, followers, only me,
+      seeBests: "everyone",
+      seeTotals: "everyone",
     },
   },
   goals: {
