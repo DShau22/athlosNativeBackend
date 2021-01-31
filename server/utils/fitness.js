@@ -144,9 +144,6 @@ const createSessionJsons = (unscrambled, userID, sessionDate) => {
       shotsMade: 0,
       time: 0
     },
-    movingAverages: {
-
-    }
   }
   var statReportIdx = 0;
   var cEvent = null;

@@ -20,7 +20,7 @@ const DEFAULT_REF_TIMES = {
 
 const DEFAULT_RUN_EFFORT_CADENCES = [30, 65, 80];
 
-const DEFAULT_RUN_EFFORTS = [1, 2, 4, 6]; // efforts inc/dec after 30 second intervals
+const DEFAULT_RUN_EFFORTS = [1, 2.5, 5, 7]; // efforts inc/dec after 30 second intervals
 
 const DEFAULT_SWIM_EFFORTS = [4, 8, 12, 16]; // efforts increment after turns
 

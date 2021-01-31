@@ -1,3 +1,5 @@
+const { DateTime } = require('luxon');
+
 function parseDate(uploadDate) {
   // parses the UTC date object
   var timestampToDate = new Date(uploadDate)
@@ -7,44 +9,49 @@ function parseDate(uploadDate) {
   return parsed
 }
 
-// returns a date object representing last Monday from the day that is passed in
-function getLastMonday(day) { // if day isn't passed in, assume its the actual today
-  var lastMonday = new Date(day);
-  if (!day) {
-    lastMonday = new Date();
-  }
-  if (lastMonday.getDay() === 0) { // if it's sunday, just subtract 6
-    lastMonday.setDate(lastMonday.getDate() - 6);
-  } else {
-    lastMonday.setDate(lastMonday.getDate() - lastMonday.getDay() + 1); // should be the monday of this week
-    lastMonday.setHours(0,0,0,0);
-  }
-  return lastMonday;
+/**
+ * returns a date object representing last Monday from the day that is passed in
+ * @param {DateTime} day 
+ */
+function getLastMonday(date) { // if day isn't passed in, assume its the actual today
+  var lastMonday = DateTime.fromObject({
+    year: date.year,
+    month: date.month,
+    day: date.day,
+    zone: date.zone,
+  });
+   // weekday is 1-7 where 1 is monday, 7 is sunday
+  return lastMonday.minus({day: lastMonday.weekday - 1}).set({
+    hour: 0, minute: 0,  second: 0, millisecond: 0
+  });
 }
 
-// returns a date object representing next Sunday from the day that is passed in
-function getNextSunday(day) {
-  var lastMonday = new Date(day);
-  if (!day) {
-    lastMonday = new Date();
-  }
-  if (lastMonday.getDay() === 0) {
-    return lastMonday;
-  }
-  lastMonday.setDate(lastMonday.getDate() - lastMonday.getDay() + 1); // should be the monday of this week
-  lastMonday.setHours(0,0,0,0);
-
-  let nextSunday = new Date();
-  nextSunday.setDate(lastMonday.getDate() + 6);
-  nextSunday.setHours(0,0,0,0);
-  return nextSunday;
+/**
+ * returns a date object representing next Sunday from the day that is passed in
+ * @param {DateTime} day 
+ */
+function getNextSunday(date) {
+  var nextSunday = DateTime.fromObject({
+    year: date.year,
+    month: date.month,
+    day: date.day,
+    zone: date.zone,
+  });
+  // weekday is 1-7 where 1 is monday, 7 is sunday
+  return nextSunday.plus({day: 7 - nextSunday.weekday}).set({
+    hour: 0, minute: 0, second: 0, millisecond: 0
+  });
 }
 
-function sameDate(day1, day2) {
-  return day1.getDay() === day2.getDay() && 
-        day1.getDate() === day2.getDate() && 
-        day1.getMonth() === day2.getMonth() && 
-        day1.getFullYear() === day2.getFullYear()
+/**
+ * Checks that two date time objects have the same day calendar date
+ * @param {DateTime} day1 
+ * @param {DateTime} day2 
+ */
+function sameDate(date1, date2) {
+  return date1.day === date2.day &&
+        date1.month === date2.month &&
+        date1.year === date2.year;
 }
 
 module.exports = {

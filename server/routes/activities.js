@@ -1,12 +1,11 @@
 const {
-  parseDate,
   getLastMonday,
   getNextSunday,
   sameDate,
 } = require('../utils/dates');
-const express = require('express')
-const extractToken = require("./extract")
-const router = express.Router()
+const express = require('express');
+const extractToken = require("./extract");
+const router = express.Router();
 const fs = require('fs');
 
 const {
@@ -16,8 +15,9 @@ const {
 } = require('../utils/fitness');
 const {User, Swim, Run, Jump} = require("../database/MongoConfig");
 const mongoose = require('mongoose');
+const { DateTime } = require('luxon');
+const jwt = require("jsonwebtoken")
 const secret = 'secretkey';
-const jwt = require("jsonwebtoken");
 
 // maximum number of activity documents to query for a given activity
 // max possible days you can go back according to frontend is 27 mondays ago
@@ -62,7 +62,7 @@ const activityToSession = (activity, uploadDate, userID) => {
       return {
         _id: '',
         userID,
-        uploadDate,
+        uploadDate: uploadDate.toISO(),
         num: 0,
         cadences: [],
         calories: 0,
@@ -72,7 +72,7 @@ const activityToSession = (activity, uploadDate, userID) => {
       return {
         _id: '',
         userID,
-        uploadDate,
+        uploadDate: uploadDate.toISO(),
         num: 0,
         lapTimes: [],
         strokes: [],
@@ -83,7 +83,7 @@ const activityToSession = (activity, uploadDate, userID) => {
       return {
         _id: '',
         userID,
-        uploadDate,
+        uploadDate: uploadDate.toISO(),
         num: 0,
         heights: [],
         shotsMade: 0,
@@ -92,107 +92,110 @@ const activityToSession = (activity, uploadDate, userID) => {
   }
 };
 
-router.get("/getUserFitness", extractToken, (request, response, next) => {
-  const tokenizedID = request.token;
-  const activity = request.headers["activity"];
-  console.log("getting user fitness for: ", activity);
+router.post("/getUserFitness", async (request, response) => {
+  const {
+    userToken,
+    activity,
+    lastUpdated,
+    userToday, // DateTime.local().toISO() from the user
+  } = request.body;
+  console.log("getting user fitness for: ", activity, userToday, lastUpdated);
+  const clientToday = DateTime.fromISO(userToday, {setZone: true});
+  console.log("using zone: ", clientToday.zone);
+  const userLastUpdated = DateTime.fromISO(lastUpdated, {zone: clientToday.zone}); // use the user's local time zone
+  console.log("user last updated: ", userLastUpdated);
   // Last monday with up to date data. Get all records from this date until the next sunday after today
   // (unless today is sunday then just till today)
-  const lastUpdated = new Date(parseFloat(request.headers["last_updated"])); 
-  lastUpdated.setHours(0,0,0,0);
   var resBody = {
     success: false,
     message: 'default error message...'
+  };
+  var userID;
+  try {
+    userID = (await jwt.verify(userToken, secret))._id;
+  } catch(e) {
+    return sendError(response, e);
   }
-  jwt.verify(tokenizedID, secret, (err, decoded) => {
-    const userID = decoded._id;
-    // allows the user to get data even if token is expired
-    if (err) {
-      resBody.message = err.toString();
-      if (err.name === 'TokenExpiredError') {
-        resBody.message = "Your session has expired. Please sign in again for security purposes."
-      }
-      return;
-    }
-    // Query the latest upload. Change -1 to 1 to get the oldest
-    var ActivityData = getModel(activity)
+  // Query the latest upload. Change -1 to 1 to get the oldest
+  var ActivityData = getModel(activity);
 
-    // don't include the __v:, uploadDate, userID, _id fields
-    var projection = {__v: false,}
-    ActivityData
-      .find({
-        userID,
-        uploadDate: {
-          $gte: lastUpdated
-        }
-      }, projection)
-      .sort({'uploadDate': 1})
-      .limit(MAX_DOCUMENTS)
-      .exec(function(err, data) {
-        if (err) {
-          resBody.message = err.toString
-          return response.send({
-            success: false,
-            message: err.toString()
-          });
-        }
-        console.log("queried result is: ", data)
-        var sessions = [] // A list of session objects for run/jump/swim. Each session object is 1 day.
-        if (data !== null) {
-          sessions = JSON.parse(JSON.stringify(data));
-        }
-        const today = new Date();
-        const nextSunday = getNextSunday(today); // hours are set to 0,0,0,0 so all comps done by date
-        console.log("next sunday: ", nextSunday);
-        var weekBuffer = []; // list that holds a weeks worth of data. Flush it to the result when it fills up.
-        var activityData = []; // List of lists. Each sublist is a week with session data.
-        var lastSession = getLastMonday(lastUpdated); // hours are set to 0,0,0,0 so all comps done by date
-        console.log("last monday: ", lastSession);
-        sessions.forEach(session => {
-          // add daily fitness data (even if it's empty) up through the date of the session
-          const nextSessionDate = new Date(session.uploadDate);
-          nextSessionDate.setHours(0, 0, 0, 0);
-          while (lastSession < nextSessionDate) { // lt or equal in terms of day, month, year
-            weekBuffer.push(activityToSession(activity, new Date(lastSession.getTime()), userID));
-            if (weekBuffer.length >= 7) {
-              activityData.push([...weekBuffer]); // must be a copy not a direct reference
-              weekBuffer = [];
-            }
-            lastSession.setDate(lastSession.getDate() + 1);
-          }
-          if (!sameDate(lastSession, nextSessionDate)) {
-            console.error("last session and next seesion date should be equal: ",lastSession, nextSessionDate)
-          }
-          weekBuffer.push(session); // should now be the current session
-          if (weekBuffer.length >= 7) {
-            activityData.push([...weekBuffer]);
-            weekBuffer = [];
-          }
-          lastSession.setDate(nextSessionDate.getDate() + 1);
+  // don't include the __v:, uploadDate, userID, _id fields
+  var projection = {__v: false,}
+  ActivityData
+    .find({
+      userID,
+      uploadDate: {
+        $gte: userLastUpdated
+      }
+    }, projection)
+    .sort({'uploadDate': 1})
+    .limit(MAX_DOCUMENTS)
+    .exec(function(err, data) {
+      if (err) {
+        resBody.message = err.toString
+        return response.send({
+          success: false,
+          message: err.toString()
         });
-        while (lastSession <= nextSunday) { // must be up THROUGH the next sunday after today
-          weekBuffer.push(activityToSession(activity, new Date(lastSession.getTime()), userID));
+      }
+      // console.log("queried result is: ", data)
+      var sessions = []; // A list of session objects for run/jump/swim. Each session object is 1 day.
+      if (data !== null) {
+        sessions = JSON.parse(JSON.stringify(data));
+      }
+      const today = DateTime.fromObject({zone: clientToday.zone});
+      const nextSunday = getNextSunday(today); // hours are set to 0,0,0,0 so all comps done by date
+      var weekBuffer = []; // list that holds a weeks worth of data. Flush it to the result when it fills up.
+      var activityData = []; // List of lists. Each sublist is a week with session data.
+      var lastSession = getLastMonday(userLastUpdated); // hours are set to 0,0,0,0 so all comps done by date
+      // console.log("last monday from last session: ", lastSession);
+      sessions.forEach(session => {
+        // add daily fitness data (even if it's empty) up through the date of the session
+        const nextSessionDate = DateTime.fromISO(session.uploadDate, {zone: clientToday.zone}).set({
+          hour: 0, minute: 0,  second: 0, millisecond: 0
+        });
+        console.log("next session date: ", nextSessionDate.toISO());
+        while (lastSession < nextSessionDate) { // lt or equal in terms of day, month, year
+          weekBuffer.push(activityToSession(activity, lastSession, userID));
+          // console.log(weekBuffer[weekBuffer.length - 1]);
           if (weekBuffer.length >= 7) {
-            activityData.push([...weekBuffer]);
+            activityData.push([...weekBuffer]); // must be a copy not a direct reference
             weekBuffer = [];
           }
-          lastSession.setDate(lastSession.getDate() + 1);
+          lastSession = lastSession.plus({day:1});
         }
-        if (weekBuffer.length != 0) {
-          console.error("week buffer should be empty but it is not!", weekBuffer);
-          return response.send({
-            success: false,
-            message: "week buffer should be empty but it is not!",
-          });
-        } else { // for some reason you need this else tf
-          reverse(activityData);
-          response.send({
-            success: true,
-            activityData,
-          });
+        if (!sameDate(lastSession, nextSessionDate)) {
+          console.error("last session and next session date should be equal: ", lastSession, nextSessionDate)
         }
+        weekBuffer.push(session); // should now be the current session
+        if (weekBuffer.length >= 7) {
+          activityData.push([...weekBuffer]);
+          weekBuffer = [];
+        }
+        lastSession = lastSession.plus({day: 1}); // go to the next session's date and add 1
       });
-  });
+      while (lastSession <= nextSunday) { // must be up THROUGH the next sunday after today
+        weekBuffer.push(activityToSession(activity, lastSession, userID));
+        if (weekBuffer.length >= 7) {
+          activityData.push([...weekBuffer]);
+          weekBuffer = [];
+        }
+        lastSession = lastSession.plus({day: 1});
+      }
+      if (weekBuffer.length != 0) {
+        console.error("week buffer should be empty but it is not!", weekBuffer);
+        return response.send({
+          success: false,
+          message: "week buffer should be empty but it is not!",
+        });
+      } else { // for some reason you need this else tf
+        reverse(activityData);
+        response.send({
+          success: true,
+          activityData,
+        });
+      }
+    });
 });
 
 /**
@@ -201,7 +204,7 @@ router.get("/getUserFitness", extractToken, (request, response, next) => {
  */
 router.post("/upload", async (req, res) => {
   const { date, sessionBytes, userToken } = req.body;
-  fs.writeFile('sadata.txt', Buffer.from(sessionBytes, 'base64'), (err) => console.log("finished writing sadata", err));
+  // fs.writeFile('sadata.txt', Buffer.from(sessionBytes, 'base64'), (err) => console.log("finished writing sadata", err));
   // console.log(date, sessionBytes, userToken);
   var userID;
   try {
@@ -210,15 +213,19 @@ router.post("/upload", async (req, res) => {
   } catch(e) {
     return sendError(res, e);
   }
-  console.log("userID: ", userID);
-  const sessionDateMidnight = new Date(date);
-  sessionDateMidnight.setHours(0, 0, 0, 0);
-  const nextDayMidnight = new Date();
-  nextDayMidnight.setDate(sessionDateMidnight.getDate() + 1);
-  nextDayMidnight.setHours(0, 0, 0, 0);
+  console.log("date that user sent: ", date);
+  const sessionDateMidnight = DateTime.fromISO(date, {setZone: true}).set({
+    hour: 0, minute: 0, second: 0, millisecond: 0
+  });
+  console.log("session date midnight: ", sessionDateMidnight);
+  const nextDayMidnight = sessionDateMidnight.plus({day: 1});
+  console.log("next day midnight: ", nextDayMidnight);
+  const sessionDateMidnightJS = sessionDateMidnight.toJSDate();
+  const nextDayMidnightJS = nextDayMidnight.toJSDate();
   const rawBytes = Buffer.from(sessionBytes, 'base64');
   const unscrambledBytes = unscrambleSessionBytes(rawBytes);
-  const sessionJsons = createSessionJsons(unscrambledBytes, userID, sessionDateMidnight);
+  const sessionJsons = createSessionJsons(unscrambledBytes, userID, sessionDateMidnightJS);
+  console.log("To js: ", sessionDateMidnightJS, nextDayMidnightJS);
   const {run, swim, jump} = sessionJsons;
   console.log("session jsons: ", sessionJsons);
   // begin mongo transaction
@@ -229,11 +236,11 @@ router.post("/upload", async (req, res) => {
     var runSession = await Run.findOne({
       userID: userID,
       uploadDate: {
-        $gte: sessionDateMidnight,
-        $lt: nextDayMidnight,
+        $gte: sessionDateMidnightJS,
+        $lt: nextDayMidnightJS,
       }
     }).session(session);
-    console.log("runSession: ", runSession);
+    // console.log("runSession: ", runSession);
     if (runSession) {
       if (Array.isArray(runSession)) {
         runSession = runSession[0];
@@ -254,11 +261,11 @@ router.post("/upload", async (req, res) => {
     var swimSession = await Swim.findOne({
       userID: userID,
       uploadDate: {
-        $gte: sessionDateMidnight,
-        $lt: nextDayMidnight,
+        $gte: sessionDateMidnightJS,
+        $lt: nextDayMidnightJS,
       }
     }).session(session);
-    console.log("swimSession: ", swimSession);
+    // console.log("swimSession: ", swimSession);
     if (swimSession) {
       if (Array.isArray(swimSession)) {
         swimSession = swimSession[0];
@@ -280,8 +287,8 @@ router.post("/upload", async (req, res) => {
     var jumpSession = await Jump.findOne({
       userID: userID,
       uploadDate: {
-        $gte: sessionDateMidnight,
-        $lt: nextDayMidnight,
+        $gte: sessionDateMidnightJS,
+        $lt: nextDayMidnightJS,
       }
     }).session(session);
     console.log("jumpSession: ", jumpSession);
@@ -306,7 +313,7 @@ router.post("/upload", async (req, res) => {
     const user = await User.findOne({
       _id: userID,
     }).session(session);
-    console.log("user: ", user);
+    // console.log("user: ", user);
     // user had to swim for 8 or more laps
     if (swim.lapTimes.length >= 8) {
       user.referenceTimes = calcReferenceTimes(user.referenceTimes, swim);
@@ -330,6 +337,16 @@ router.post("/upload", async (req, res) => {
         newAvgNumHalfMins * .70, // level 4
       ];
     }
+
+    // update user bests
+    user.bests = {
+      mostCalories: Math.max(user.bests.mostCalories, run.calories, swim.calories),
+      mostSteps: Math.max(user.bests.mostSteps, run.num),
+      mostLaps: Math.max(user.bests.mostLaps, swim.num),
+      highestJump: Math.max(user.bests.highestJump, Math.max(jump.heights)),
+      bestEvent: user.bests.bestEvent // don't do anything about the best event yet
+    };
+
     await user.save();
 
     // commit the changes if everything was successful
@@ -349,4 +366,4 @@ router.post("/upload", async (req, res) => {
   }
 });
 
-module.exports = router
+module.exports = router;
