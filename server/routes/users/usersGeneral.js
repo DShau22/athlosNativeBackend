@@ -239,6 +239,86 @@ router.post("/updateWeeklyGoals", async (req, res) => {
   }
 });
 
+router.post("/updateUserBests", async (req, res) => {
+  const { token, bests } = req.body;
+  var userID;
+  try {
+    userID = (await jwt.verify(token, secret))._id;
+  } catch(e) {
+    return sendError(response, e);
+  }
+  mongoose.connection.transaction(async function executor() {
+    const user = await User.findOne({ _id: userID });
+    if (!user) {
+      return sendError(res, new Error("User does not exist :/"));
+    }
+    user.bests = bests;
+    await user.save();
+  }).catch(e => {
+    sendError(res, e);
+  });
+});
+
+router.post("/updateUserRunEfforts", async (req, res) => {
+  const { token, runEfforts } = req.body;
+  var userID;
+  try {
+    userID = (await jwt.verify(token, secret))._id;
+  } catch(e) {
+    return sendError(response, e);
+  }
+  mongoose.connection.transaction(async function executor() {
+    const user = await User.findOne({ _id: userID });
+    if (!user) {
+      return sendError(res, new Error("User does not exist :/"));
+    }
+    user.runEfforts = runEfforts;
+    await user.save();
+  }).catch(e => {
+    sendError(res, e);
+  });
+});
+
+router.post("/updateUserSwimEfforts", async (req, res) => {
+  const { token, swimEfforts } = req.body;
+  var userID;
+  try {
+    userID = (await jwt.verify(token, secret))._id;
+  } catch(e) {
+    return sendError(response, e);
+  }
+  mongoose.connection.transaction(async function executor() {
+    const user = await User.findOne({ _id: userID });
+    if (!user) {
+      return sendError(res, new Error("User does not exist :/"));
+    }
+    user.swimEfforts = swimEfforts;
+    await user.save();
+  }).catch(e => {
+    sendError(res, e);
+  });
+});
+
+router.post("/updateUserWalkEfforts", async (req, res) => {
+  const { token, walkEfforts } = req.body;
+  var userID;
+  try {
+    userID = (await jwt.verify(token, secret))._id;
+  } catch(e) {
+    return sendError(response, e);
+  }
+  mongoose.connection.transaction(async function executor() {
+    const user = await User.findOne({ _id: userID });
+    if (!user) {
+      return sendError(res, new Error("User does not exist :/"));
+    }
+    user.walkEfforts = walkEfforts;
+    await user.save();
+  }).catch(e => {
+    sendError(res, e);
+  });
+});
+
 router.get("/tokenToID", extractToken, (req, res, next) => {
   jwt.verify(req.token, secret, (err, decoded) => {
     if (err) {

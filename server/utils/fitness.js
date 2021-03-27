@@ -13,6 +13,7 @@ const markerSet = new Set([
   'Y'.charCodeAt(0),
   'W'.charCodeAt(0),
   'R'.charCodeAt(0),
+  'J'.charCodeAt(0),
   'M'.charCodeAt(0), // switched modes
 ]);
 const M_ascii = 'M'.charCodeAt(0);
@@ -23,6 +24,7 @@ const FLY = 'U';
 const BACK = 'Y';
 const BREAST = 'O';
 const FREE = 'F';
+const HEAD_UP = 'J';
 
 //fly back breast free or any of the races
 const swimSet = new Set([
@@ -30,6 +32,7 @@ const swimSet = new Set([
   BACK.charCodeAt(0),
   BREAST.charCodeAt(0),
   FREE.charCodeAt(0),
+  HEAD_UP.charCodeAt(0),
 ]);
 // Array(35).forEach((_, idx) => {
 //   swimSet.add(idx);
@@ -119,13 +122,14 @@ const calcHeight = (hangtime) => {
 const createSessionJsons = (unscrambled, userID, sessionDate) => {
   console.log("unscrambled: ", unscrambled);
   const sessionJsons = {
-    run: {
+    run: { // contains the combined run an walk data
       userID,
       uploadDate: sessionDate,
       num: 0,
       cadences: [],
       calories: 0,
-      time: 0
+      time: 0,
+      walkCadences: [], // cadences for when the user has hiking mode enabled to support JJ
     },
     swim: {
       userID,
@@ -162,16 +166,20 @@ const createSessionJsons = (unscrambled, userID, sessionDate) => {
         time = statReport[2] / 600;
         prevNumSteps = numSteps;
         numSteps = statReport[3];
-        sessionJsons.run.cadences.push(Math.round((numSteps - prevNumSteps) / (time - prevTime)));
+        const cadence = Math.round((numSteps - prevNumSteps) / (time - prevTime));
+        sessionJsons.run.cadences.push(cadence);
+        if (cEvent === "W".charCodeAt(0)) {
+          sessionJsons.run.walkCadences.push(cadence);
+        }
         // move onto the next stat report record
         statReportIdx += 1;
         statReport = unscrambled[statReportIdx];
         cEvent = statReport ? statReport[0] : null;
       }
-      const lastRunStatReport = unscrambled[statReportIdx - 1];
-      sessionJsons.run.num += lastRunStatReport[3];
-      sessionJsons.run.calories += lastRunStatReport[5] / 10;
-      sessionJsons.run.time += lastRunStatReport[2] / 600;
+      const lastStepStatReport = unscrambled[statReportIdx - 1];
+      sessionJsons.run.num += lastStepStatReport[3];
+      sessionJsons.run.calories += lastStepStatReport[5] / 10;
+      sessionJsons.run.time += lastStepStatReport[2] / 600;
     } else if (swimSet.has(cEvent)) {
       // console.log("swim: ", statReport);
       while (swimSet.has(cEvent) && statReportIdx < unscrambled.length) {

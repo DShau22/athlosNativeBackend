@@ -13,11 +13,14 @@ const {
   createSessionJsons,
   calcReferenceTimes,
 } = require('../utils/fitness');
-const {User, Swim, Run, Jump} = require("../database/MongoConfig");
+const {User, Swim, Run, Jump, DEFAULT_CADENCES} = require("../database/MongoConfig");
 const mongoose = require('mongoose');
 const { DateTime } = require('luxon');
 const jwt = require("jsonwebtoken")
 const secret = 'secretkey';
+
+const WALK_CADENCE = DEFAULT_CADENCES[1] * 2;
+const RUN_CADENCE = DEFAULT_CADENCES[2] * 2;
 
 // maximum number of activity documents to query for a given activity
 // max possible days you can go back according to frontend is 27 mondays ago
@@ -91,6 +94,125 @@ const activityToSession = (activity, uploadDate, userID) => {
       }
   }
 };
+
+// receives and array<runschema> of runs, jumps, and swims
+// iterates through each and if they aren't empty, updates database
+router.post("/uploadFitnessRecords", async (request, response) => {
+  const { token, runs, swims, jumps } = request.body;
+  var userID;
+  try {
+    userID = (await jwt.verify(token, secret))._id;
+  } catch(e) {
+    return sendError(response, e);
+  }
+  // begin mongo transaction
+  mongoose.connection.transaction(async function executor() {
+    for (let i = 0; i < runs.length; i++) {
+      let run = runs[i];
+      console.log("uploading run: ", run);
+      if (run.cadences.length > 0) {
+        run.userID = userID;
+        var runUploadDate = DateTime.fromISO(run.uploadDate, {setZone: true}).set({
+          hour: 0, minute: 0, second: 0, millisecond: 0
+        }).toUTC();
+        console.log("Run upload date:", runUploadDate);
+        var runSession = await Run.findOne({
+          userID: run.userID,
+          uploadDate: {
+            $gte: runUploadDate.toJSDate(),
+            $lt: runUploadDate.plus({days: 1}).toJSDate(),
+          }
+        })
+        console.log("Run sessions found: ", runSession);
+        if (runSession) {
+          if (Array.isArray(runSession)) {
+            runSession = runSession[0];
+          }
+          runSession.num += run.num;
+          runSession.cadences.push(...run.cadences);
+          runSession.calories += run.calories;
+          runSession.time += Math.ceil(run.time);
+          const savedRun = await runSession.save();
+          console.log("after modifying: ", savedRun);
+        } else {
+          console.log("saving new run session...");
+          const newRunSession = new Run(run);
+          await newRunSession.save();
+        }
+      }
+    }
+    for (let i = 0; i < swims.length; i++) {
+      let swim = swims[i];
+      if (swim.lapTimes.length > 0) {
+        swim.userID = userID;
+        // update any swim sessions
+        var swimUploadDate = DateTime.fromISO(swim.uploadDate, {setZone: true}).set({
+          hour: 0, minute: 0, second: 0, millisecond: 0
+        }).toUTC();
+        console.log("Swim upload date:", swimUploadDate);
+        var swimSession = await Swim.findOne({
+          userID: swim.userID,
+          uploadDate: {
+            $gte: swimUploadDate.toJSDate(),
+            $lt: swimUploadDate.plus({days: 1}).toJSDate(),
+          }
+        })
+        console.log("swimSession: ", swimSession);
+        if (swimSession) {
+          if (Array.isArray(swimSession)) {
+            swimSession = swimSession[0];
+          }
+          swimSession.num += swim.num;
+          swimSession.strokes.push(...swim.strokes);
+          swimSession.lapTimes.push(...swim.lapTimes);
+          swimSession.calories += swim.calories;
+          swimSession.time += Math.ceil(swim.time);
+          await swimSession.save();
+        } else {
+          console.log("saving new swim session...");
+          const newSwimSession = new Swim(swim);
+          await newSwimSession.save();
+        }
+      }
+    }
+    for (let i = 0; i < jumps.length; i++) {
+      let jump = jumps[i];
+      if (jump.heights.length > 0) {
+        jump.userID = userID;
+        var jumpUploadDate = DateTime.fromISO(jump.uploadDate, {setZone: true}).set({
+          hour: 0, minute: 0, second: 0, millisecond: 0
+        }).toUTC();
+        // update any jump sessions
+        console.log("jump upload date:", jumpUploadDate);
+        var jumpSession = await Jump.findOne({
+          userID: jump.userID,
+          uploadDate: {
+            $gte: jumpUploadDate.toJSDate(),
+            $lt: jumpUploadDate.plus({days: 1}).toJSDate(),
+          }
+        })
+        console.log("jump session: ", jumpSession);
+        if (jumpSession) {
+          if (Array.isArray(jumpSession)) {
+            jumpSession = jumpSession[0];
+          }
+          jumpSession.num += jump.num;
+          jumpSession.heights.push(...jump.heights);
+          jumpSession.shotsMade += jump.shotsMade;
+          jumpSession.time += Math.ceil(jump.time);
+          await jumpSession.save();
+        } else {
+          console.log("saving new jump session...");
+          const newJumpSession = new Jump(jump);
+          await newJumpSession.save();
+        }
+      }
+    }
+    response.send({success: true});
+  }).catch((e) => {
+    sendError(response, e.toString());
+  });
+});
 
 router.post("/getUserFitness", async (request, response) => {
   const {
@@ -202,168 +324,189 @@ router.post("/getUserFitness", async (request, response) => {
  * Backend route that takes in a list of scrambled byte arrays, unscrambles them, decodes them
  * into session statistics, and updates the user's fitness in the Mongo DB.
  */
-router.post("/upload", async (req, res) => {
-  const { date, sessionBytes, userToken } = req.body;
-  // fs.writeFile('sadata.txt', Buffer.from(sessionBytes, 'base64'), (err) => console.log("finished writing sadata", err));
-  // console.log(date, sessionBytes, userToken);
-  var userID;
-  try {
-    userID = await jwt.verify(userToken, secret)
-    userID = userID._id;
-  } catch(e) {
-    return sendError(res, e);
-  }
-  console.log("date that user sent: ", date);
-  const sessionDateMidnight = DateTime.fromISO(date, {setZone: true}).set({
-    hour: 0, minute: 0, second: 0, millisecond: 0
-  });
-  console.log("session date midnight: ", sessionDateMidnight);
-  const nextDayMidnight = sessionDateMidnight.plus({day: 1});
-  console.log("next day midnight: ", nextDayMidnight);
-  const sessionDateMidnightJS = sessionDateMidnight.toJSDate();
-  const nextDayMidnightJS = nextDayMidnight.toJSDate();
-  const rawBytes = Buffer.from(sessionBytes, 'base64');
-  const unscrambledBytes = unscrambleSessionBytes(rawBytes);
-  const sessionJsons = createSessionJsons(unscrambledBytes, userID, sessionDateMidnightJS);
-  console.log("To js: ", sessionDateMidnightJS, nextDayMidnightJS);
-  const {run, swim, jump} = sessionJsons;
-  console.log("session jsons: ", sessionJsons);
-  // begin mongo transaction
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  try {
-    // update any run sessions
-    var runSession = await Run.findOne({
-      userID: userID,
-      uploadDate: {
-        $gte: sessionDateMidnightJS,
-        $lt: nextDayMidnightJS,
-      }
-    }).session(session);
-    // console.log("runSession: ", runSession);
-    if (runSession) {
-      if (Array.isArray(runSession)) {
-        runSession = runSession[0];
-      }
-      runSession.num += run.num;
-      runSession.cadences.push(...run.cadences);
-      runSession.calories += run.calories;
-      runSession.time += Math.ceil(run.time);
-      await runSession.save();
-    } else {
-      if (run.time > 0) {
-        console.log("saving new run session...");
-        const newRunSession = new Run(run);
-        await newRunSession.save();
-      }
-    }
-    // update any swim sessions
-    var swimSession = await Swim.findOne({
-      userID: userID,
-      uploadDate: {
-        $gte: sessionDateMidnightJS,
-        $lt: nextDayMidnightJS,
-      }
-    }).session(session);
-    // console.log("swimSession: ", swimSession);
-    if (swimSession) {
-      if (Array.isArray(swimSession)) {
-        swimSession = swimSession[0];
-      }
-      swimSession.num += swim.num;
-      swimSession.strokes.push(...swim.strokes);
-      swimSession.lapTimes.push(...swim.lapTimes);
-      swimSession.calories += swim.calories;
-      swimSession.time += Math.ceil(swim.time);
-      await swimSession.save();
-    } else {
-      if (swim.time > 0) {
-        console.log("saving new swim session...");
-        const newSwimSession = new Swim(swim);
-        await newSwimSession.save();
-      }
-    }
-    // update any jump sessions
-    var jumpSession = await Jump.findOne({
-      userID: userID,
-      uploadDate: {
-        $gte: sessionDateMidnightJS,
-        $lt: nextDayMidnightJS,
-      }
-    }).session(session);
-    console.log("jumpSession: ", jumpSession);
-    if (jumpSession) {
-      if (Array.isArray(jumpSession)) {
-        jumpSession = jumpSession[0];
-      }
-      jumpSession.num += jump.num;
-      jumpSession.heights.push(...jump.heights);
-      jumpSession.shotsMade += jump.shotsMade;
-      jumpSession.time += Math.ceil(jump.time);
-      await jumpSession.save();
-    } else {
-      if (jump.time > 0) {
-        console.log("saving new jump session...");
-        const newJumpSession = new Jump(jump);
-        await newJumpSession.save();
-      }
-    }
+// router.post("/upload", async (req, res) => {
+//   const { date, sessionBytes, userToken } = req.body;
+//   // fs.writeFile('sadata.txt', Buffer.from(sessionBytes, 'base64'), (err) => console.log("finished writing sadata", err));
+//   // console.log(date, sessionBytes, userToken);
+//   var userID;
+//   try {
+//     userID = await jwt.verify(userToken, secret)
+//     userID = userID._id;
+//   } catch(e) {
+//     return sendError(res, e);
+//   }
+//   console.log("date that user sent: ", date);
+//   const sessionDateMidnight = DateTime.fromISO(date, {setZone: true}).set({
+//     hour: 0, minute: 0, second: 0, millisecond: 0
+//   });
+//   console.log("session date midnight: ", sessionDateMidnight);
+//   const nextDayMidnight = sessionDateMidnight.plus({day: 1});
+//   console.log("next day midnight: ", nextDayMidnight);
+//   const sessionDateMidnightJS = sessionDateMidnight.toJSDate();
+//   const nextDayMidnightJS = nextDayMidnight.toJSDate();
+//   const rawBytes = Buffer.from(sessionBytes, 'base64');
+//   // fs.writeFileSync("Clark_sadata.txt", rawBytes.toString());
+//   const unscrambledBytes = unscrambleSessionBytes(rawBytes);
+//   const sessionJsons = createSessionJsons(unscrambledBytes, userID, sessionDateMidnightJS);
+//   console.log("To js: ", sessionDateMidnightJS, nextDayMidnightJS);
+//   const {run, swim, jump} = sessionJsons;
+//   console.log("session jsons: ", sessionJsons);
+//   // begin mongo transaction
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+//   try {
+//     // update any run sessions
+//     var runSession = await Run.findOne({
+//       userID: userID,
+//       uploadDate: {
+//         $gte: sessionDateMidnightJS,
+//         $lt: nextDayMidnightJS,
+//       }
+//     }).session(session);
+//     // console.log("runSession: ", runSession);
+//     if (runSession) {
+//       if (Array.isArray(runSession)) {
+//         runSession = runSession[0];
+//       }
+//       runSession.num += run.num;
+//       runSession.cadences.push(...run.cadences);
+//       runSession.calories += run.calories;
+//       runSession.time += Math.ceil(run.time);
+//       await runSession.save();
+//     } else {
+//       if (run.time > 0) {
+//         console.log("saving new run session...");
+//         const newRunSession = new Run(run);
+//         await newRunSession.save();
+//       }
+//     }
+//     // update any swim sessions
+//     var swimSession = await Swim.findOne({
+//       userID: userID,
+//       uploadDate: {
+//         $gte: sessionDateMidnightJS,
+//         $lt: nextDayMidnightJS,
+//       }
+//     }).session(session);
+//     // console.log("swimSession: ", swimSession);
+//     if (swimSession) {
+//       if (Array.isArray(swimSession)) {
+//         swimSession = swimSession[0];
+//       }
+//       swimSession.num += swim.num;
+//       swimSession.strokes.push(...swim.strokes);
+//       swimSession.lapTimes.push(...swim.lapTimes);
+//       swimSession.calories += swim.calories;
+//       swimSession.time += Math.ceil(swim.time);
+//       await swimSession.save();
+//     } else {
+//       if (swim.time > 0) {
+//         console.log("saving new swim session...");
+//         const newSwimSession = new Swim(swim);
+//         await newSwimSession.save();
+//       }
+//     }
+//     // update any jump sessions
+//     var jumpSession = await Jump.findOne({
+//       userID: userID,
+//       uploadDate: {
+//         $gte: sessionDateMidnightJS,
+//         $lt: nextDayMidnightJS,
+//       }
+//     }).session(session);
+//     console.log("jumpSession: ", jumpSession);
+//     if (jumpSession) {
+//       if (Array.isArray(jumpSession)) {
+//         jumpSession = jumpSession[0];
+//       }
+//       jumpSession.num += jump.num;
+//       jumpSession.heights.push(...jump.heights);
+//       jumpSession.shotsMade += jump.shotsMade;
+//       jumpSession.time += Math.ceil(jump.time);
+//       await jumpSession.save();
+//     } else {
+//       if (jump.time > 0) {
+//         console.log("saving new jump session...");
+//         const newJumpSession = new Jump(jump);
+//         await newJumpSession.save();
+//       }
+//     }
 
-    // update the user nEfforts, thresholds, etcs
-    const user = await User.findOne({
-      _id: userID,
-    }).session(session);
-    // console.log("user: ", user);
-    // user had to swim for 8 or more laps
-    if (swim.lapTimes.length >= 8) {
-      user.referenceTimes = calcReferenceTimes(user.referenceTimes, swim);
-      const oldAverageNumLaps = user.swimEfforts[0] / 0.2;
-      const newMovingAvgNumLaps = (7 * oldAverageNumLaps)/8 + swim.lapTimes.length/8;
-      user.swimEfforts = [
-        newMovingAvgNumLaps * .2, // level 1
-        newMovingAvgNumLaps * .3, // level 2
-        newMovingAvgNumLaps * .4, // level 3
-        newMovingAvgNumLaps * .6, // level 4
-      ];
-    }
-    // user had to run for 3 or more minutes for run efforts to be updated
-    if (run.cadences.length >= 6) {
-      const oldAvgNumHalfMins = user.runEfforts[0] / 0.1;
-      const newAvgNumHalfMins = (7 * oldAvgNumHalfMins)/8 + run.cadences.length/8;
-      user.runEfforts = [
-        newAvgNumHalfMins * .1,  // level 1
-        newAvgNumHalfMins * .25, // level 2
-        newAvgNumHalfMins * .50, // level 3
-        newAvgNumHalfMins * .70, // level 4
-      ];
-    }
+//     // update the user nEfforts, thresholds, etcs
+//     const user = await User.findOne({
+//       _id: userID,
+//     }).session(session);
+//     // console.log("user: ", user);
+//     // user had to swim for 8 or more laps
+//     if (swim.lapTimes.length >= 8) {
+//       user.referenceTimes = calcReferenceTimes(user.referenceTimes, swim);
+//       const oldAverageNumLaps = user.swimEfforts[0] / 0.2;
+//       const newMovingAvgNumLaps = (7 * oldAverageNumLaps)/8 + swim.lapTimes.length/8;
+//       user.swimEfforts = [
+//         newMovingAvgNumLaps * .2, // level 1
+//         newMovingAvgNumLaps * .3, // level 2
+//         newMovingAvgNumLaps * .4, // level 3
+//         newMovingAvgNumLaps * .6, // level 4
+//       ];
+//     }
+//     // user had to run for 3 or more minutes for run efforts to be updated
+//     if (run.cadences.length >= 6) {
+//       const oldAvgRunHalfMins = user.runEfforts[0] / 0.1;
+//       var sessionRunHalfMins = 0;
+//       run.cadences.forEach((cadence, _) => {
+//         sessionRunHalfMins += cadence >= RUN_CADENCE;
+//       });
+//       const newAvgRunHalfMins = (7 * oldAvgRunHalfMins)/8 + sessionRunHalfMins/8;
+//       console.log("new avg run half mins ", newAvgRunHalfMins);
+//       console.log("session run half mins: ", sessionRunHalfMins);
+//       user.runEfforts = [
+//         newAvgRunHalfMins * .1,  // level 1
+//         newAvgRunHalfMins * .25, // level 2
+//         newAvgRunHalfMins * .50, // level 3
+//         newAvgRunHalfMins * .70, // level 4
+//       ];
+//       const oldAvgWalkHalfMins = user.walkEfforts[0] / 0.1;
+//       var sessionWalkHalfMins = 0;
+//       run.walkCadences.forEach((walkCadence, _) => {
+//         sessionWalkHalfMins += walkCadence >= WALK_CADENCE;
+//       });
+//       const newAvgWalkHalfMins = (7 * oldAvgWalkHalfMins)/8 + sessionWalkHalfMins/8;
+//       console.log("new avg walk half mins ", newAvgWalkHalfMins);
+//       console.log("session walk half mins: ", sessionWalkHalfMins);
+//       user.walkEfforts = [
+//         newAvgWalkHalfMins * .1,  // level 1
+//         newAvgWalkHalfMins * .25, // level 2
+//         newAvgWalkHalfMins * .50, // level 3
+//         newAvgWalkHalfMins * .70, // level 4
+//       ];
+//     }
 
-    // update user bests
-    user.bests = {
-      mostCalories: Math.max(user.bests.mostCalories, run.calories, swim.calories),
-      mostSteps: Math.max(user.bests.mostSteps, run.num),
-      mostLaps: Math.max(user.bests.mostLaps, swim.num),
-      highestJump: Math.max(user.bests.highestJump, Math.max(jump.heights)),
-      bestEvent: user.bests.bestEvent // don't do anything about the best event yet
-    };
+//     // update user bests
+//     user.bests = {
+//       mostCalories: Math.max(user.bests.mostCalories, run.calories, swim.calories),
+//       mostSteps: Math.max(user.bests.mostSteps, run.num),
+//       mostLaps: Math.max(user.bests.mostLaps, swim.num),
+//       highestJump: Math.max(user.bests.highestJump, Math.max(...jump.heights)),
+//       bestEvent: user.bests.bestEvent // don't do anything about the best event yet
+//     };
 
-    await user.save();
+//     await user.save();
 
-    // commit the changes if everything was successful
-    await session.commitTransaction();
-    // send success response back to client
-    return res.send({
-      success: true,
-      message: `Successfully updated your fitness!`
-    });
-  } catch(e) {
-    console.log('Error in updating your fitness: ', e.toString());
-    // this will rollback any changes made in the database
-    await session.abortTransaction();
-    return sendError(res, e.toString());
-  } finally {
-    session.endSession();
-  }
-});
+//     // commit the changes if everything was successful
+//     await session.commitTransaction();
+//     // send success response back to client
+//     return res.send({
+//       success: true,
+//       message: `Successfully updated your fitness!`
+//     });
+//   } catch(e) {
+//     console.log('Error in updating your fitness: ', e.toString());
+//     // this will rollback any changes made in the database
+//     await session.abortTransaction();
+//     return sendError(res, e.toString());
+//   } finally {
+//     session.endSession();
+//   }
+// });
 
 module.exports = router;

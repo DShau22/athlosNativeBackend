@@ -18,9 +18,10 @@ const DEFAULT_REF_TIMES = {
   free: [25, 22]
 };
 
-const DEFAULT_RUN_EFFORT_CADENCES = [30, 65, 80];
+const DEFAULT_CADENCES = [30, 46, 73];
 
 const DEFAULT_RUN_EFFORTS = [1, 2.5, 5, 7]; // efforts inc/dec after 30 second intervals
+const DEFAULT_WALK_EFFORTS = [1, 2.5, 5, 7]; // efforts inc/dec after 30 second intervals
 
 const DEFAULT_SWIM_EFFORTS = [4, 8, 12, 16]; // efforts increment after turns
 
@@ -95,7 +96,7 @@ const RunSchema = new Schema({
     type: Number,
     required: true,
     default: DEFAULT_GOALS.goalSteps,
-  }
+  },
 })
 
 const SwimSchema = new Schema({
@@ -326,10 +327,15 @@ const UserSchema = new Schema({
     required: false,
     default: DEFAULT_RUN_EFFORTS,
   },
+  walkEfforts: {
+    type: Array,
+    required: false,
+    default: DEFAULT_WALK_EFFORTS,
+  },
   cadenceThresholds: {
     type: Array,
     required: false,
-    default: DEFAULT_RUN_EFFORT_CADENCES,
+    default: DEFAULT_CADENCES,
   }
 });
 
@@ -354,4 +360,5 @@ module.exports = {
   Jump,
   Run,
   Swim,
+  DEFAULT_CADENCES,
 }
