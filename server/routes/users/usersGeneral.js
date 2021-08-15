@@ -164,6 +164,7 @@ router.post("/updateWeeklyGoals", async (req, res) => {
     goalCaloriesBurned,
     goalWorkoutTime,
   } = req.body
+  console.log("updating weekly goals...")
 
   // start session for transaction
   const session = await mongoose.startSession();
@@ -181,7 +182,6 @@ router.post("/updateWeeklyGoals", async (req, res) => {
     await user.save();
     const lastMonday = getLastMonday();
     const nextSunday = getNextSunday();
-    console.log(lastMonday.getMonth(), lastMonday.getDate(), lastMonday.getFullYear());
     const RunActivityData  = mongoConfig.Run;
     const SwimActivityData = mongoConfig.Swim;
     const JumpActivityData = mongoConfig.Jump;
@@ -249,11 +249,13 @@ router.post("/updateUserBests", async (req, res) => {
   }
   mongoose.connection.transaction(async function executor() {
     const user = await User.findOne({ _id: userID });
+    console.log("run efforts: ", user);
     if (!user) {
       return sendError(res, new Error("User does not exist :/"));
     }
     user.bests = bests;
     await user.save();
+    res.send({success: true});
   }).catch(e => {
     sendError(res, e);
   });
@@ -269,11 +271,13 @@ router.post("/updateUserRunEfforts", async (req, res) => {
   }
   mongoose.connection.transaction(async function executor() {
     const user = await User.findOne({ _id: userID });
+    console.log("run efforts: ", user);
     if (!user) {
       return sendError(res, new Error("User does not exist :/"));
     }
     user.runEfforts = runEfforts;
     await user.save();
+    res.send({success: true});
   }).catch(e => {
     sendError(res, e);
   });
@@ -289,11 +293,13 @@ router.post("/updateUserSwimEfforts", async (req, res) => {
   }
   mongoose.connection.transaction(async function executor() {
     const user = await User.findOne({ _id: userID });
+    console.log("swimEfforts: ", user);
     if (!user) {
       return sendError(res, new Error("User does not exist :/"));
     }
     user.swimEfforts = swimEfforts;
     await user.save();
+    res.send({success: true});
   }).catch(e => {
     sendError(res, e);
   });
@@ -309,11 +315,13 @@ router.post("/updateUserWalkEfforts", async (req, res) => {
   }
   mongoose.connection.transaction(async function executor() {
     const user = await User.findOne({ _id: userID });
+    console.log("walkEfforts: ", user);
     if (!user) {
       return sendError(res, new Error("User does not exist :/"));
     }
     user.walkEfforts = walkEfforts;
     await user.save();
+    res.send({success: true});
   }).catch(e => {
     sendError(res, e);
   });

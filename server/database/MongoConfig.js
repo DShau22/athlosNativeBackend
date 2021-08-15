@@ -149,6 +149,52 @@ const SwimSchema = new Schema({
   }
 })
 
+const IntervalWorkoutSchema = new Schema({
+  intervalsCompleted: {
+    type: [Object],
+    required: true,
+    default: [],
+  },
+  workoutName: {
+    type: String,
+    required: true,
+    default: "My HIIT Workout"
+  },
+  totalRoundsPlanned: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  intervalsPerRoundPlanned: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  workoutTime: {
+    type: Number,
+    required: true,
+    default: 0,
+  }
+})
+
+const IntervalSchema = new Schema({
+  workouts: [IntervalWorkoutSchema],
+  userID: {
+    type: String,
+    required: true,
+    default: '',
+  },
+  uploadDate: {
+    type: Date,
+    required: true,
+  },
+  time: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+})
+
 const UserSchema = new Schema({
   email: {
     type: String,
@@ -354,11 +400,13 @@ const User = mongoose.model('user', UserSchema)
 const Swim = mongoose.model('swim', SwimSchema)
 const Run = mongoose.model('run', RunSchema)
 const Jump = mongoose.model('jump', JumpSchema)
+const Interval = mongoose.model('interval', IntervalSchema)
 
 module.exports = {
   User,
   Jump,
   Run,
   Swim,
+  Interval,
   DEFAULT_CADENCES,
 }

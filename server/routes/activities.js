@@ -13,7 +13,7 @@ const {
   createSessionJsons,
   calcReferenceTimes,
 } = require('../utils/fitness');
-const {User, Swim, Run, Jump, DEFAULT_CADENCES} = require("../database/MongoConfig");
+const {User, Swim, Run, Jump, Interval, DEFAULT_CADENCES} = require("../database/MongoConfig");
 const mongoose = require('mongoose');
 const { DateTime } = require('luxon');
 const jwt = require("jsonwebtoken")
@@ -42,6 +42,8 @@ function getModel(activity) {
       return Run
     case "swim":
       return Swim
+    case "interval":
+      return Interval
   }
 }
 
@@ -92,13 +94,21 @@ const activityToSession = (activity, uploadDate, userID) => {
         shotsMade: 0,
         time: 0
       }
+    case "interval":
+      return {
+        _id: '',
+        userID,
+        uploadDate: uploadDate.toISO(),
+        workouts: [],
+        time: 0,
+      }
   }
 };
 
 // receives and array<runschema> of runs, jumps, and swims
 // iterates through each and if they aren't empty, updates database
 router.post("/uploadFitnessRecords", async (request, response) => {
-  const { token, runs, swims, jumps } = request.body;
+  const { token, runs, swims, jumps, intervals } = request.body;
   var userID;
   try {
     userID = (await jwt.verify(token, secret))._id;
@@ -205,6 +215,38 @@ router.post("/uploadFitnessRecords", async (request, response) => {
           console.log("saving new jump session...");
           const newJumpSession = new Jump(jump);
           await newJumpSession.save();
+        }
+      }
+    }
+    for (let i = 0; i < intervals.length; i++) {
+      let intervalWorkout = intervals[i];
+      if (intervalWorkout.time > 0) {
+        intervalWorkout.userID = userID;
+        var intervalUploadDate = DateTime.fromISO(intervalWorkout.uploadDate, {setZone: true}).set({
+          hour: 0, minute: 0, second: 0, millisecond: 0
+        }).toUTC();
+        // update any jump sessions
+        console.log("interval upload date:", intervalUploadDate);
+        var intervalSession = await Interval.findOne({
+          userID: intervalWorkout.userID,
+          uploadDate: {
+            $gte: intervalUploadDate.toJSDate(),
+            $lt: intervalUploadDate.plus({days: 1}).toJSDate(),
+          }
+        })
+        console.log("interval session: ", intervalSession);
+        console.log("interval workouts: ", intervalSession.workouts);
+        if (intervalSession) {
+          if (Array.isArray(intervalSession)) {
+            intervalSession = intervalSession[0];
+          }
+          intervalSession.workouts.push(...intervalWorkout.workouts);
+          intervalSession.time += intervalWorkout.time;
+          await intervalSession.save();
+        } else {
+          console.log("saving new jump session...");
+          const newIntervalSession = new Interval(intervalWorkout);
+          await newIntervalSession.save();
         }
       }
     }

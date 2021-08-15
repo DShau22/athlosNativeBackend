@@ -82,13 +82,13 @@ router.get("/confirmation", (req, res) => {
       console.log("there was an error :(")
       console.error(err)
       sendResponse(res, false, "Something went wrong with the confirmation process."
-                                        + "Contact us for support if needed: " + err.toString())
+                                        + " Contact us for support if needed: " + err.toString())
     } else {
       console.log("redirecting...")
       sendResponse(res, true, "Successfully signed up via email confirmation!")
     }
   })
-})
+});
 
 router.post("/forgotPassword", (req, res) => {
   console.log("forgot password")
