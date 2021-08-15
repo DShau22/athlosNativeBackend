@@ -235,8 +235,8 @@ router.post("/uploadFitnessRecords", async (request, response) => {
           }
         })
         console.log("interval session: ", intervalSession);
-        console.log("interval workouts: ", intervalSession.workouts);
         if (intervalSession) {
+          console.log("interval workouts: ", intervalSession.workouts);
           if (Array.isArray(intervalSession)) {
             intervalSession = intervalSession[0];
           }
