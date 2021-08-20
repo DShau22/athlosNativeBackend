@@ -97,7 +97,48 @@ const RunSchema = new Schema({
     required: true,
     default: DEFAULT_GOALS.goalSteps,
   },
-})
+});
+
+const SwimSet = new Schema({
+  reps: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  distance: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  event: {
+    type: String,
+    required: true,
+    default: "free",
+  },
+  timeIntervalInSeconds: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+});
+
+const SwimWorkoutSchema = new Schema({
+  sets: {
+    type: [SwimSet],
+    required: true,
+    default: [],
+  },
+  totalNumSwimsIntended: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  totalNumRoundsIntended: {
+    type: Number,
+    required: true,
+    default: 0,
+  }
+});
 
 const SwimSchema = new Schema({
   userID: {
@@ -146,7 +187,21 @@ const SwimSchema = new Schema({
     type: Number,
     required: true,
     default: DEFAULT_GOALS.goalLaps,
-  }
+  },
+  poolLength: {
+    type: String,
+    required: false,
+  },
+  // boolean for if this is a swimming workout or just lap swimming
+  workouts: {
+    type: [SwimWorkoutSchema],
+    required: false
+  },
+  isLapSwimMode: {
+    type: Boolean,
+    required: true,
+    default: true,
+  },
 })
 
 const IntervalWorkoutSchema = new Schema({
@@ -175,7 +230,7 @@ const IntervalWorkoutSchema = new Schema({
     required: true,
     default: 0,
   }
-})
+});
 
 const IntervalSchema = new Schema({
   workouts: [IntervalWorkoutSchema],

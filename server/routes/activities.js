@@ -153,7 +153,7 @@ router.post("/uploadFitnessRecords", async (request, response) => {
     }
     for (let i = 0; i < swims.length; i++) {
       let swim = swims[i];
-      if (swim.lapTimes.length > 0) {
+      if (swim.num > 0) {
         swim.userID = userID;
         // update any swim sessions
         var swimUploadDate = DateTime.fromISO(swim.uploadDate, {setZone: true}).set({
@@ -177,6 +177,13 @@ router.post("/uploadFitnessRecords", async (request, response) => {
           swimSession.lapTimes.push(...swim.lapTimes);
           swimSession.calories += swim.calories;
           swimSession.time += Math.ceil(swim.time);
+          if (swim.workouts) {
+            if (swimSession.workouts) {
+              swimSession.workouts.push(...swim.workouts);
+            } else {
+              swimSession.workouts = swim.workouts;
+            }
+          }
           await swimSession.save();
         } else {
           console.log("saving new swim session...");
