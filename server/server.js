@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const app = express()
 const fs = require('fs')
+const { DateTime } = require('luxon')
 // for env vars
 const dotenv = require('dotenv')
 dotenv.config()
@@ -35,7 +36,7 @@ const userFriends = require("./routes/users/userFriends")
 const profilePic = require("./routes/users/profilePic")
 // initialize object that maps userIDs to a set of sockets
 var idMap = {}
-
+console.log("AOWIJDOAIJWD", DateTime.local())
 // configure and use cors options
 // CHANGE THIS LATER AT SOME POINT
 var corsOptions = {

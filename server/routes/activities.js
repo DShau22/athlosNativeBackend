@@ -270,11 +270,8 @@ router.post("/getUserFitness", async (request, response) => {
     lastUpdated,
     userToday, // DateTime.local().toISO() from the user
   } = request.body;
-  console.log("getting user fitness for: ", activity, userToday, lastUpdated);
   const clientToday = DateTime.fromISO(userToday, {setZone: true});
-  console.log("using zone: ", clientToday.zone);
   const userLastUpdated = DateTime.fromISO(lastUpdated, {zone: clientToday.zone}); // use the user's local time zone
-  console.log("user last updated: ", userLastUpdated);
   // Last monday with up to date data. Get all records from this date until the next sunday after today
   // (unless today is sunday then just till today)
   var resBody = {
@@ -314,7 +311,7 @@ router.post("/getUserFitness", async (request, response) => {
       if (data !== null) {
         sessions = JSON.parse(JSON.stringify(data));
       }
-      const today = DateTime.fromObject({zone: clientToday.zone});
+      const today = DateTime.local({zone: clientToday.zone});
       const nextSunday = getNextSunday(today); // hours are set to 0,0,0,0 so all comps done by date
       var weekBuffer = []; // list that holds a weeks worth of data. Flush it to the result when it fills up.
       var activityData = []; // List of lists. Each sublist is a week with session data.
@@ -322,10 +319,9 @@ router.post("/getUserFitness", async (request, response) => {
       // console.log("last monday from last session: ", lastSession);
       sessions.forEach(session => {
         // add daily fitness data (even if it's empty) up through the date of the session
-        const nextSessionDate = DateTime.fromISO(session.uploadDate, {zone: clientToday.zone}).set({
+        const nextSessionDate = DateTime.fromISO(session.uploadDate).setZone(clientToday.zone).set({
           hour: 0, minute: 0,  second: 0, millisecond: 0
         });
-        console.log("next session date: ", nextSessionDate.toISO());
         while (lastSession < nextSessionDate) { // lt or equal in terms of day, month, year
           weekBuffer.push(activityToSession(activity, lastSession, userID));
           // console.log(weekBuffer[weekBuffer.length - 1]);
@@ -336,7 +332,7 @@ router.post("/getUserFitness", async (request, response) => {
           lastSession = lastSession.plus({day:1});
         }
         if (!sameDate(lastSession, nextSessionDate)) {
-          console.error("last session and next session date should be equal: ", lastSession, nextSessionDate)
+          console.error("last session and next session date should be equal: ", lastSession.toString(), nextSessionDate.toString());
         }
         weekBuffer.push(session); // should now be the current session
         if (weekBuffer.length >= 7) {

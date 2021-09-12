@@ -12,12 +12,12 @@ function getLastMonday(date) { // if day isn't passed in, assume its the actual 
       year: date.year,
       month: date.month,
       day: date.day,
-    });
+    }, {zone: date.zone});
   }
    // weekday is 1-7 where 1 is monday, 7 is sunday
   return lastMonday.minus({day: lastMonday.weekday - 1}).set({
     hour: 0, minute: 0,  second: 0, millisecond: 0
-  });
+  }, {zone: date.zone});
 }
 
 /**
@@ -32,12 +32,12 @@ function getNextSunday(date) {
       year: date.year,
       month: date.month,
       day: date.day,
-    });
+    }, {zone: date.zone});
   }
   // weekday is 1-7 where 1 is monday, 7 is sunday
   return nextSunday.plus({day: 7 - nextSunday.weekday}).set({
     hour: 0, minute: 0, second: 0, millisecond: 0
-  });
+  }, {zone: date.zone});
 }
 
 /**
