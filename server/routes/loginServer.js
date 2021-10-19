@@ -6,7 +6,7 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const secret = 'secretkey'
 const expiresIn = "12h"
-const confirmationPage = 'https://register.athloslive.com/confirmation'
+const confirmationPage = 'https://app.athloslive.com/confirmation'
 const dotenv = require('dotenv')
 dotenv.config()
 
