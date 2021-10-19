@@ -1,6 +1,6 @@
 const {
-  getLastMonday,
-  getNextSunday,
+  getNextSaturday,
+  getLastSunday,
   sameDate,
 } = require('../utils/dates');
 const express = require('express');
@@ -65,7 +65,6 @@ const activityToSession = (activity, uploadDate, userID) => {
   switch(activity) {
     case "run":
       return {
-        _id: '',
         userID,
         uploadDate: uploadDate.toISO(),
         num: 0,
@@ -75,18 +74,18 @@ const activityToSession = (activity, uploadDate, userID) => {
       }
     case "swim":
       return {
-        _id: '',
         userID,
         uploadDate: uploadDate.toISO(),
         num: 0,
         lapTimes: [],
+        workouts: [],
+        poolLength: '25 yd',
         strokes: [],
         calories: 0,
         time: 0
       }
     case "jump":
       return {
-        _id: '',
         userID,
         uploadDate: uploadDate.toISO(),
         num: 0,
@@ -96,7 +95,6 @@ const activityToSession = (activity, uploadDate, userID) => {
       }
     case "interval":
       return {
-        _id: '',
         userID,
         uploadDate: uploadDate.toISO(),
         workouts: [],
@@ -312,11 +310,10 @@ router.post("/getUserFitness", async (request, response) => {
         sessions = JSON.parse(JSON.stringify(data));
       }
       const today = DateTime.local({zone: clientToday.zone});
-      const nextSunday = getNextSunday(today); // hours are set to 0,0,0,0 so all comps done by date
+      const nextSaturday = getNextSaturday(today); // hours are set to 0,0,0,0 so all comps done by date
       var weekBuffer = []; // list that holds a weeks worth of data. Flush it to the result when it fills up.
       var activityData = []; // List of lists. Each sublist is a week with session data.
-      var lastSession = getLastMonday(userLastUpdated); // hours are set to 0,0,0,0 so all comps done by date
-      // console.log("last monday from last session: ", lastSession);
+      var lastSession = getLastSunday(userLastUpdated); // hours are set to 0,0,0,0 so all comps done by date
       sessions.forEach(session => {
         // add daily fitness data (even if it's empty) up through the date of the session
         const nextSessionDate = DateTime.fromISO(session.uploadDate).setZone(clientToday.zone).set({
@@ -341,7 +338,7 @@ router.post("/getUserFitness", async (request, response) => {
         }
         lastSession = lastSession.plus({day: 1}); // go to the next session's date and add 1
       });
-      while (lastSession <= nextSunday) { // must be up THROUGH the next sunday after today
+      while (lastSession <= nextSaturday) { // must be up THROUGH the next sunday after today
         weekBuffer.push(activityToSession(activity, lastSession, userID));
         if (weekBuffer.length >= 7) {
           activityData.push([...weekBuffer]);

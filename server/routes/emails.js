@@ -4,7 +4,6 @@ const bcrypt = require("bcrypt")
 const nodemailer = require("nodemailer");
 const fs = require('fs');
 const util = require('util');
-var EmailTemplate = require('email-templates').EmailTemplate;
 // Convert fs.readFile into Promise version of same    
 const readFile = util.promisify(fs.readFile);
 
@@ -41,6 +40,7 @@ router.get("/confirmation", (req, res) => {
 
   // MAKE NOTE TO MAYBE SCRAP ASYNC JS CODE LATER
   // LOOKS UGLY AF TO MAINTAIN
+  // probably rewrite using Mongo transactions
   async.waterfall([
     // veryify the token
     function(callback) {
@@ -112,12 +112,12 @@ router.post("/forgotPassword", (req, res) => {
           callback(userNotRegisteredError, user)
         } else {
           console.log("found the user: ", user)
-          callback(null)
+          callback(null, user.firstName)
         }
       })
     },
     // sign an email token, which is verified on the pwResetPage
-    function(callback) {
+    function(firstName, callback) {
       console.log("signing email token...")
       jwt.sign({ email }, SECRET, { expiresIn: "12h" }, (err, token) => {
         console.log("done signing email token")
@@ -125,12 +125,12 @@ router.post("/forgotPassword", (req, res) => {
           console.log(err)
           callback(err)
         } else {
-          callback(null, token)
+          callback(null, token, firstName)
         }
       })
     },
     // send the email
-    function(token, callback) {
+    function(token, firstName, callback) {
       console.log("perparing to send email...")
       var transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
@@ -143,16 +143,22 @@ router.post("/forgotPassword", (req, res) => {
           privateKey: process.env.PRIVATE_KEY
         }
       })
-      // const confRedirect = `http://www.athloslive.com/pwResetPage?token=${token}`
-      const confRedirect = `http://localhost:3001/pwResetPage?token=${token}`
+      const confRedirect = `https://app.athloslive.com/pwResetPage?token=${token}`
+      // const confRedirect = `http://localhost:3001/pwResetPage?token=${token}`
       var mailOptions = {
         from: "The Athlos Team",
         // to: `${email}`,
         // FOR TESTING PURPOSES
         to: 'davidshau22@berkeley.edu',
         subject: "Your Athlos Account Password Reset",
-        html: `Hello, \n Please click this link to reset your password:
-        <a href=${confRedirect}>Reset Password</a>`
+        text: 
+          `Hey ${firstName}!\n`+
+          'You are receiving this because you have requested the reset of the password for your account.\n' +
+          'Please click on the following link, or paste this into your browser to complete the process:\n' +
+          `${confRedirect}\n` +
+          'If you did not request this, please ignore this email and your password will remain unchanged.\n' +
+          'Best,\n' +
+          'The Athlos Team',
       }
       console.log("sending mail...")
       transporter.sendMail(mailOptions, function(err, data) {

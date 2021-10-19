@@ -10,7 +10,7 @@ const { User } = mongoConfig
 // other modules and constants
 const jwt = require("jsonwebtoken")
 const mongoose = require('mongoose')
-const { getLastMonday, getNextSunday } = require("../../utils/dates.js")
+const { getNextSaturday, getLastSunday } = require("../../utils/dates.js")
 const secret = 'secretkey'
 
 function sendError(res, err) {
@@ -180,8 +180,8 @@ router.post("/updateWeeklyGoals", async (req, res) => {
       goalWorkoutTime: goalWorkoutTime || goalWorkoutTime === 0 ? goalWorkoutTime : user.goals.goalWorkoutTime,
     }
     await user.save();
-    const lastMonday = getLastMonday();
-    const nextSunday = getNextSunday();
+    const lastSunday = getLastSunday();
+    const nextSaturday = getNextSaturday();
     const RunActivityData  = mongoConfig.Run;
     const SwimActivityData = mongoConfig.Swim;
     const JumpActivityData = mongoConfig.Jump;
@@ -189,8 +189,8 @@ router.post("/updateWeeklyGoals", async (req, res) => {
     const runSessions = await RunActivityData.find({
       userID,
       uploadDate: {
-        $gte: lastMonday,
-        $lte: nextSunday,
+        $gte: lastSunday,
+        $lte: nextSaturday,
       }
     }).session(session);
     for (let i = 0; i < runSessions.length; i++) {
@@ -201,8 +201,8 @@ router.post("/updateWeeklyGoals", async (req, res) => {
     const swimSessions = await SwimActivityData.find({
       userID,
       uploadDate: {
-        $gte: lastMonday,
-        $lte: nextSunday,
+        $gte: lastSunday,
+        $lte: nextSaturday,
       }
     }).session(session);
     for (let i = 0; i < swimSessions.length; i++) {
@@ -213,8 +213,8 @@ router.post("/updateWeeklyGoals", async (req, res) => {
     const jumpSessions = await JumpActivityData.find({
       userID,
       uploadDate: {
-        $gte: lastMonday,
-        $lte: nextSunday,
+        $gte: lastSunday,
+        $lte: nextSaturday,
       }
     }).session(session);
     for (let i = 0; i < jumpSessions.length; i++) {

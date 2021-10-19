@@ -125,8 +125,6 @@ router.post('/api/account/signup', function(req, res, next) {
       // 4. send email
       // send the confirmation email
       function(emailToken, callback) {
-        console.log(process.env.CLIENT_ID)
-        console.log(process.env.PRIVATE_KEY)
         var transporter = nodemailer.createTransport({
           host: 'smtp.gmail.com',
           port: 465,
@@ -142,9 +140,14 @@ router.post('/api/account/signup', function(req, res, next) {
         var mailOptions = {
           from: "The Athlos Team",
           to: `${email}`,
-          subject: "Your Athlos Account",
-          html: `Hello! \n Please click this link to finish your account registration:
-          <a href=${confRedirect}>finish</a>`
+          subject: "Athlos Account Registration. Almost there!",
+          text:     
+            `Hey ${firstName}!\n`+
+            'Welcome to the Athlos community! Whether you are just starting or continuing your fitness journey, we are happy to have you with us.\n' +
+            'You are almost there with registration! Please click on the following link, or paste it into your browser to complete the process:\n' +
+            `${confRedirect}\n` +
+            'Best,\n' +
+            'The Athlos Team',
         }
         //callback should contain err, result
         console.log("sending email...")
