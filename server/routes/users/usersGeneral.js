@@ -6,7 +6,7 @@ const router = express.Router()
 // imports for mongo
 const mongoConfig = require("../../database/MongoConfig")
 const { User } = mongoConfig
-
+const { DateTime } = require('luxon');
 // other modules and constants
 const jwt = require("jsonwebtoken")
 const mongoose = require('mongoose')
@@ -163,8 +163,11 @@ router.post("/updateWeeklyGoals", async (req, res) => {
     goalVertical,
     goalCaloriesBurned,
     goalWorkoutTime,
-  } = req.body
-  console.log("updating weekly goals...")
+    userToday
+  } = req.body;
+  const clientToday = DateTime.fromISO(userToday, {setZone: true});
+  const today = DateTime.local({zone: clientToday.zone});
+  console.log("updating weekly goals...");
 
   // start session for transaction
   const session = await mongoose.startSession();
@@ -180,8 +183,8 @@ router.post("/updateWeeklyGoals", async (req, res) => {
       goalWorkoutTime: goalWorkoutTime || goalWorkoutTime === 0 ? goalWorkoutTime : user.goals.goalWorkoutTime,
     }
     await user.save();
-    const lastSunday = getLastSunday();
-    const nextSaturday = getNextSaturday();
+    const lastSunday = getLastSunday(today);
+    const nextSaturday = getNextSaturday(today);
     const RunActivityData  = mongoConfig.Run;
     const SwimActivityData = mongoConfig.Swim;
     const JumpActivityData = mongoConfig.Jump;

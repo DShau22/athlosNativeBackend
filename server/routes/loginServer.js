@@ -142,10 +142,10 @@ router.post('/api/account/signup', function(req, res, next) {
           to: `${email}`,
           subject: "Athlos Account Registration. Almost there!",
           text:     
-            `Hey ${firstName}!\n`+
-            'Welcome to the Athlos community! Whether you are just starting or continuing your fitness journey, we are happy to have you with us.\n' +
-            'You are almost there with registration! Please click on the following link, or paste it into your browser to complete the process:\n' +
-            `${confRedirect}\n` +
+            `Hey ${firstName.charAt(0).toUpperCase() + firstName.slice(1)}!\n\n`+
+            'Welcome to the Athlos community! Whether you are just starting or continuing your fitness journey, we are happy to have you with us.\n\n' +
+            'You are almost there with registration! Please click on the following link, or paste it into your browser to complete the process:\n\n' +
+            `${confRedirect}\n\n` +
             'Best,\n' +
             'The Athlos Team',
         }

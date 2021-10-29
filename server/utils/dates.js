@@ -6,7 +6,7 @@ const { DateTime } = require('luxon');
  */
 function getLastMonday(date) { // if day isn't passed in, assume its the actual today
   if (!date) {
-    var lastMonday = DateTime.local();
+    throw Error("Date cannot be undefined anymore");
   } else {
     var lastMonday = DateTime.fromObject({
       year: date.year,
@@ -26,7 +26,7 @@ function getLastMonday(date) { // if day isn't passed in, assume its the actual 
  */
 function getNextSunday(date) {
   if (!date) {
-    var nextSunday = DateTime.local();
+    throw Error("Date cannot be undefined anymore");
   } else {
     var nextSunday = DateTime.fromObject({
       year: date.year,
@@ -46,7 +46,7 @@ function getNextSunday(date) {
  */
  function getNextMonday(date) {
   if (!date) {
-    var nextMonday = DateTime.local();
+    throw Error("Date cannot be undefined anymore");
   } else {
     var nextMonday = DateTime.fromObject({
       year: date.year,
@@ -66,7 +66,7 @@ function getNextSunday(date) {
  */
  function getNextSaturday(date) {
   if (!date) {
-    var nextSaturday = DateTime.local();
+    throw Error("Date cannot be undefined anymore");
   } else {
     var nextSaturday = DateTime.fromObject({
       year: date.year,
@@ -86,7 +86,7 @@ function getNextSunday(date) {
  */
 function getLastSunday(date) {
   if (!date) {
-    var lastSunday = DateTime.local();
+    throw Error("Date cannot be undefined anymore");
   } else {
     var lastSunday = DateTime.fromObject({
       year: date.year,

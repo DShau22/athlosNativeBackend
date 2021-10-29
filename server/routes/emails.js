@@ -147,16 +147,15 @@ router.post("/forgotPassword", (req, res) => {
       // const confRedirect = `http://localhost:3001/pwResetPage?token=${token}`
       var mailOptions = {
         from: "The Athlos Team",
-        // to: `${email}`,
+        to: `${email}`,
         // FOR TESTING PURPOSES
-        to: 'davidshau22@berkeley.edu',
         subject: "Your Athlos Account Password Reset",
         text: 
-          `Hey ${firstName}!\n`+
-          'You are receiving this because you have requested the reset of the password for your account.\n' +
-          'Please click on the following link, or paste this into your browser to complete the process:\n' +
-          `${confRedirect}\n` +
-          'If you did not request this, please ignore this email and your password will remain unchanged.\n' +
+          `Hey ${firstName.charAt(0).toUpperCase() + firstName.slice(1)}!\n\n`+
+          'You are receiving this because you have requested the reset of the password for your account. ' +
+          'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+          `${confRedirect}\n\n` +
+          'If you did not request this, please ignore this email and your password will remain unchanged.\n\n' +
           'Best,\n' +
           'The Athlos Team',
       }

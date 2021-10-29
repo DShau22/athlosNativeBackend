@@ -36,7 +36,6 @@ const userFriends = require("./routes/users/userFriends")
 const profilePic = require("./routes/users/profilePic")
 // initialize object that maps userIDs to a set of sockets
 var idMap = {}
-console.log("AOWIJDOAIJWD", DateTime.local())
 // configure and use cors options
 // CHANGE THIS LATER AT SOME POINT
 var corsOptions = {
